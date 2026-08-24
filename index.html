@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>RV Trading — Angel SmartAPI Callback</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #07101d; color: #e9f2ff; }
+    main { width: min(540px, calc(100vw - 40px)); padding: 32px; border: 1px solid #25425e; border-radius: 16px; background: #0c1929; box-shadow: 0 20px 60px #0008; }
+    .mark { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #45dbaa; border-radius: 10px; color: #45dbaa; font-size: 15px; font-weight: 800; }
+    h1 { margin: 18px 0 10px; font-size: 23px; } p { color: #9db0c6; line-height: 1.6; }
+    code { display: inline-block; padding: 3px 6px; border-radius: 4px; background: #14273d; color: #93d8ff; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">RV</div>
+    <h1>RV Trading callback page</h1>
+    <p>This HTTPS address is registered for the Angel One SmartAPI application.</p>
+    <p>Return to your local <code>RV Trading</code> app to continue setup. Do not paste API keys, PINs, OTPs, TOTP secrets, or tokens on this page.</p>
+  </main>
+  <script>
+    // Remove any accidental query string from the visible browser URL without sending it anywhere.
+    if (window.location.search || window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  </script>
+</body>
+</html>
