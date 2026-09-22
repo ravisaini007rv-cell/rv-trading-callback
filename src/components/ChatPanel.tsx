@@ -40,6 +40,15 @@ import {
   type ToolRun,
 } from "@/lib/types";
 
+/** ⚡⚡⚡ = blazing, ⚡ = ok, 🐢 = slow but thorough */
+function speedIcon(speed?: number) {
+  const v = speed ?? 30;
+  if (v >= 150) return "⚡⚡⚡";
+  if (v >= 50) return "⚡⚡";
+  if (v >= 25) return "⚡";
+  return "🐢";
+}
+
 const SUGGESTIONS = [
   { t: "Debug my code", s: "Yeh Python function error de raha hai, fix karke samjhao:" },
   { t: "Explain simply", s: "Explain how JWT authentication works, in simple Hinglish." },
@@ -67,6 +76,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   const [showExport, setShowExport] = useState(false);
   const handsFree = useRef(false);
   const [handsFreeOn, setHandsFreeOn] = useState(false);
+  const [turbo, setTurbo] = useState(false);
   const [speakingId, setSpeakingId] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -281,6 +291,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           keys,
           messages: apiMessages,
           signal: controller.signal,
+          turbo,
           onFallback: (from, to) => setFallback(`${from} busy → switched to ${to}`),
         });
 
@@ -402,18 +413,29 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           <optgroup label="No API key needed">
             {allModels.filter((m) => !m.keyed && !m.local).map((m) => (
               <option key={m.id} value={m.id}>
-                {m.label}
+                {speedIcon(m.speed)} {m.label}
               </option>
             ))}
           </optgroup>
           <optgroup label="Needs a free key (Settings)">
             {allModels.filter((m) => m.keyed).map((m) => (
               <option key={m.id} value={m.id}>
-                {m.label}
+                {speedIcon(m.speed)} {m.label}
               </option>
             ))}
           </optgroup>
         </select>
+        <button
+          onClick={() => setTurbo((t) => !t)}
+          title="Turbo: always answer with the fastest model available"
+          className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+            turbo
+              ? "border-transparent bg-amber-500 text-white"
+              : "border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]"
+          }`}
+        >
+          ⚡ Turbo
+        </button>
         <button
           onClick={() => onChange({ ...conversation, agent: conversation.agent === false })}
           title="Agent mode: lets the AI search the web, read pages, run code and make images"
@@ -426,7 +448,9 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           <IconBolt width={14} height={14} />
           Agent
         </button>
-        <span className="hidden truncate text-xs text-[var(--muted)] lg:block">{model.hint}</span>
+        <span className="hidden truncate text-xs text-[var(--muted)] lg:block">
+          {turbo ? "Turbo on — fastest model wins, your pick is ignored" : model.hint}
+        </span>
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={() => setShowLib(true)}

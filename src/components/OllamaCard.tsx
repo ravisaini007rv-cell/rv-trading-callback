@@ -76,8 +76,14 @@ export default function OllamaCard({ onModelsChanged }: { onModelsChanged?: () =
       </div>
 
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Run an AI model on your own computer: <strong>no daily limit, no API key, fully
-        private, works offline</strong>. This is the only way to get genuinely unlimited use.
+        <strong>Completely optional — skip this.</strong> Runs an AI model on your own
+        computer: no daily limit, no API key, works offline. But it is only fast on an Apple
+        Silicon Mac (M1/M2/M3+) or a PC with a dedicated NVIDIA GPU.
+      </p>
+      <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-sm text-amber-400">
+        ⚡ Want speed instead? Add a free <strong>Groq</strong> key below — it is roughly
+        10× faster than a local model on most laptops, and gives 14,400 messages a day.
+        On an Intel Mac or a machine without a GPU, Groq is the better choice.
       </p>
 
       {online && status.models.length > 0 && (

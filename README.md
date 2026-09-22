@@ -33,6 +33,19 @@ Install [Ollama](https://ollama.com/download), run `ollama pull llama3.1:8b`, th
 quota, no key, and no internet required. They also act as a backup when the cloud tiers are
 rate-limited. Full instructions are built into the app.
 
+## Want it fast?
+
+1. **Add the free Groq key** (Settings → ~1 minute, no card). It is by far the fastest
+   provider — roughly 280 tokens/sec, about 10× a local model on a laptop without a GPU.
+2. **Turn on ⚡ Turbo** in the chat toolbar — it ignores your model choice and always routes
+   to the fastest model you can currently use.
+3. Models are labelled in the dropdown: ⚡⚡⚡ blazing, ⚡⚡ quick, ⚡ ok, 🐢 slow but thorough.
+4. The fallback chain is sorted by speed, and a provider that stalls for more than a few
+   seconds is dropped automatically — you never sit waiting on a dead tier.
+
+> Ollama (local models) is **optional and can be skipped**. It is only fast on Apple Silicon
+> or a dedicated NVIDIA GPU; on an Intel Mac, Groq will be much quicker.
+
 ## Features
 
 - **Memory** — remembers durable facts about you across every chat; view and forget them

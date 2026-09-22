@@ -13,6 +13,8 @@ export type ModelDef = {
   tag?: "fast" | "smart" | "code" | "vision" | "local";
   /** Runs on the user's own machine — unlimited, private, offline. */
   local?: boolean;
+  /** Rough tokens/sec ranking used to pick the fastest option first. */
+  speed?: number;
 };
 
 /**
@@ -31,6 +33,7 @@ export const MODELS: ModelDef[] = [
     hint: "No key needed · quick everyday answers",
     keyed: false,
     tag: "fast",
+    speed: 60,
   },
   {
     id: "rv-smart",
@@ -41,6 +44,7 @@ export const MODELS: ModelDef[] = [
     keyed: false,
     vision: true,
     tag: "smart",
+    speed: 35,
   },
   {
     id: "rv-reason",
@@ -50,6 +54,7 @@ export const MODELS: ModelDef[] = [
     hint: "No key needed · slow, thinks step by step",
     keyed: false,
     tag: "smart",
+    speed: 12,
   },
   {
     id: "rv-coder",
@@ -59,6 +64,7 @@ export const MODELS: ModelDef[] = [
     hint: "No key needed · tuned for writing code",
     keyed: false,
     tag: "code",
+    speed: 40,
   },
 
   // ---- free tiers that need a free key ------------------------------------
@@ -67,9 +73,10 @@ export const MODELS: ModelDef[] = [
     label: "Llama 3.3 70B",
     provider: "groq",
     model: "llama-3.3-70b-versatile",
-    hint: "Groq free key · extremely fast",
+    hint: "Groq free key · fastest of all (~280 tok/s)",
     keyed: true,
     tag: "fast",
+    speed: 280,
   },
   {
     id: "groq-kimi",
@@ -79,6 +86,7 @@ export const MODELS: ModelDef[] = [
     hint: "Groq free key · strong at code & tools",
     keyed: true,
     tag: "code",
+    speed: 200,
   },
   {
     id: "gemini-flash",
@@ -89,6 +97,7 @@ export const MODELS: ModelDef[] = [
     keyed: true,
     vision: true,
     tag: "vision",
+    speed: 120,
   },
   {
     id: "or-deepseek",
@@ -98,6 +107,7 @@ export const MODELS: ModelDef[] = [
     hint: "OpenRouter free key · deep reasoning",
     keyed: true,
     tag: "smart",
+    speed: 25,
   },
   {
     id: "or-qwen",
@@ -107,6 +117,7 @@ export const MODELS: ModelDef[] = [
     hint: "OpenRouter free key · long code files",
     keyed: true,
     tag: "code",
+    speed: 45,
   },
 ];
 
@@ -136,7 +147,7 @@ export function findModel(id: string): ModelDef {
 }
 
 export const KEY_FIELDS: { provider: ProviderId; label: string; url: string }[] = [
-  { provider: "groq", label: "Groq", url: "https://console.groq.com/keys" },
+  { provider: "groq", label: "Groq ⚡ fastest — start here", url: "https://console.groq.com/keys" },
   { provider: "gemini", label: "Google Gemini", url: "https://aistudio.google.com/apikey" },
   { provider: "openrouter", label: "OpenRouter", url: "https://openrouter.ai/keys" },
 ];

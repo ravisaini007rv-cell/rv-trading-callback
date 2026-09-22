@@ -1,5 +1,5 @@
 import { findModel, type ModelDef } from "./models";
-import { buildChain, RATE_LIMIT_HINT } from "./fallback";
+import { buildChain, fastestModel, RATE_LIMIT_HINT } from "./fallback";
 import { getOllamaUrl } from "./ollama";
 
 type Args = {
@@ -11,6 +11,8 @@ type Args = {
   signal: AbortSignal;
   /** called when a provider fails and we move to the next one */
   onFallback?: (from: string, to: string) => void;
+  /** always use the fastest model available, whatever was selected */
+  turbo?: boolean;
 };
 
 async function openOne(
@@ -100,14 +102,17 @@ async function openOne(
  * rate-limited tier never becomes a dead end for the user.
  */
 export async function streamChat(args: Args): Promise<ReadableStream<Uint8Array> | null> {
-  const chain = buildChain(args.modelId, args.keys);
-  const startLabel = findModel(args.modelId).label;
+  const effectiveId = args.turbo ? fastestModel(args.keys).id : args.modelId;
+  const chain = buildChain(effectiveId, args.keys);
+  const startLabel = findModel(effectiveId).label;
 
   for (let i = 0; i < chain.length; i++) {
     if (args.signal.aborted) return null;
     const model = chain[i];
     try {
-      const stream = await openOne(model, args);
+      // Don't let one sluggish provider hold the whole queue: if it hasn't
+      // produced a stream in time, move on to the next one.
+      const stream = await withTimeout(openOne(model, args), i === 0 ? 8000 : 5000);
       if (stream) {
         if (i > 0) args.onFallback?.(startLabel, model.label);
         return stream;
@@ -124,6 +129,14 @@ export async function streamChat(args: Args): Promise<ReadableStream<Uint8Array>
       c.close();
     },
   });
+}
+
+/** Resolve null instead of hanging when a provider is unresponsive. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    p,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
 }
 
 function sseToText(body: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {

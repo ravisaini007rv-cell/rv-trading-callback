@@ -24,11 +24,15 @@ export default function SettingsPanel({ keys, setKeys, systemPrompt, setSystemPr
         <LimitsCard keys={keys} />
         <OllamaCard />
         <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4">
-          <h2 className="font-semibold">Free API keys (optional)</h2>
+          <h2 className="font-semibold">Free API keys — for speed</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            The default models work without any key. Add free keys below to unlock faster and
-            smarter models. Keys are stored only in your browser (localStorage) and are sent
-            straight to the provider.
+            The app works with no keys at all, but the default models are slow when busy.
+            <strong className="text-[var(--text)]">
+              {" "}
+              Adding the free Groq key is the single biggest speed upgrade
+            </strong>{" "}
+            — it is the fastest option available and takes about a minute. Keys are stored
+            only in your browser and go straight to the provider.
           </p>
           <div className="mt-4 space-y-3">
             {KEY_FIELDS.map((f) => (
