@@ -18,6 +18,9 @@ function resolveEndpoint(
     (provKey && provKey.trim()) || process.env[envName] || "";
 
   switch (provider) {
+    case "ollama":
+      // Ollama lives on the user's own machine; the browser calls it directly.
+      return { error: "Local models are called from your browser, not the server." };
     case "pollinations":
       return {
         url: "https://text.pollinations.ai/openai",

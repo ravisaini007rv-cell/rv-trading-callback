@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconDownload, IconSend, IconStop, IconTrash } from "./Icons";
 import { streamChat } from "@/lib/stream";
-import { MODELS } from "@/lib/models";
+import { useModels } from "@/lib/useModels";
 import {
   STARTER,
   buildPreviewHtml,
@@ -39,6 +39,7 @@ export default function BuildPanel({
   keys: Keys;
   modelId: string;
 }) {
+  const allModels = useModels();
   const [files, setFiles] = useState<ProjectFile[]>(STARTER);
   const [activePath, setActivePath] = useState("index.html");
   const [prompt, setPrompt] = useState("");
@@ -172,7 +173,7 @@ export default function BuildPanel({
             onChange={(e) => setModel(e.target.value)}
             className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-2 py-1 outline-none"
           >
-            {MODELS.map((m) => (
+            {allModels.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
                 {m.keyed ? " (key)" : ""}

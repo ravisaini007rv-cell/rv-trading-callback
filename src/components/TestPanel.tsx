@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { IconSend, IconStop } from "./Icons";
 import Markdown from "./Markdown";
 import { streamChat } from "@/lib/stream";
-import { MODELS } from "@/lib/models";
+import { useModels } from "@/lib/useModels";
 import type { Keys } from "@/lib/types";
 
 const TEST_PROMPT = `You are RV QA, a senior test engineer.
@@ -81,6 +81,7 @@ function runSuite(code: string): Promise<Result[]> {
 }
 
 export default function TestPanel({ keys, modelId }: { keys: Keys; modelId: string }) {
+  const allModels = useModels();
   const [code, setCode] = useState(
     `function slugify(s) {\n  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");\n}`,
   );
@@ -199,7 +200,7 @@ export default function TestPanel({ keys, modelId }: { keys: Keys; modelId: stri
             onChange={(e) => setModel(e.target.value)}
             className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-2 py-1.5 text-xs outline-none"
           >
-            {MODELS.map((m) => (
+            {allModels.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
                 {m.keyed ? " (key)" : ""}

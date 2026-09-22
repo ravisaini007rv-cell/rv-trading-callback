@@ -22,7 +22,8 @@ import {
   IconStop,
   IconTrash,
 } from "./Icons";
-import { MODELS, findModel } from "@/lib/models";
+import { findModel } from "@/lib/models";
+import { useModels } from "@/lib/useModels";
 import { streamChat } from "@/lib/stream";
 import { DOC_EXTENSIONS, extractAny } from "@/lib/docs";
 import { MEMORY_INSTRUCTION, addMemory, extractMemoryMarkers, memoryBlock } from "@/lib/memory";
@@ -72,7 +73,11 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   const fileRef = useRef<HTMLInputElement>(null);
   const stickToBottom = useRef(true);
 
-  const model = useMemo(() => findModel(conversation.modelId), [conversation.modelId]);
+  const allModels = useModels();
+  const model = useMemo(
+    () => allModels.find((m) => m.id === conversation.modelId) ?? findModel(conversation.modelId),
+    [allModels, conversation.modelId],
+  );
   const messages = conversation.messages;
 
   /* ---------------- scrolling ---------------- */
@@ -383,15 +388,26 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           onChange={(e) => onChange({ ...conversation, modelId: e.target.value })}
           className="max-w-[60%] truncate rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-2.5 py-1.5 text-sm outline-none"
         >
+          {allModels.some((m) => m.local) && (
+            <optgroup label="🖥️ On your PC — unlimited">
+              {allModels
+                .filter((m) => m.local)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+            </optgroup>
+          )}
           <optgroup label="No API key needed">
-            {MODELS.filter((m) => !m.keyed).map((m) => (
+            {allModels.filter((m) => !m.keyed && !m.local).map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
               </option>
             ))}
           </optgroup>
           <optgroup label="Needs a free key (Settings)">
-            {MODELS.filter((m) => m.keyed).map((m) => (
+            {allModels.filter((m) => m.keyed).map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
               </option>

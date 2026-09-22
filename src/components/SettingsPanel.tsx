@@ -3,6 +3,7 @@
 import { KEY_FIELDS } from "@/lib/models";
 import { useEffect, useState } from "react";
 import LimitsCard from "./LimitsCard";
+import OllamaCard from "./OllamaCard";
 import { loadMemories, removeMemory, type Memory } from "@/lib/memory";
 import type { Keys } from "@/lib/types";
 
@@ -21,6 +22,7 @@ export default function SettingsPanel({ keys, setKeys, systemPrompt, setSystemPr
     <div className="min-h-0 flex-1 overflow-y-auto p-4">
       <div className="mx-auto max-w-2xl space-y-4">
         <LimitsCard keys={keys} />
+        <OllamaCard />
         <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4">
           <h2 className="font-semibold">Free API keys (optional)</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">

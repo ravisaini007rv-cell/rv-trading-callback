@@ -1,4 +1,20 @@
 import { MODELS, findModel, type ModelDef } from "./models";
+import { ollamaModelDefs } from "./ollama";
+
+/** Ollama models discovered at runtime, registered by the Settings probe. */
+let localModels: ModelDef[] = [];
+
+export function setLocalModels(tags: string[]) {
+  localModels = ollamaModelDefs(tags);
+}
+
+export function getLocalModels() {
+  return localModels;
+}
+
+export function allModels(): ModelDef[] {
+  return [...localModels, ...MODELS];
+}
 
 /**
  * Free tiers fail: rate limits, cold providers, empty responses. Instead of
@@ -8,10 +24,11 @@ import { MODELS, findModel, type ModelDef } from "./models";
  * actually have, keyless ones last (they always work but are slower).
  */
 export function buildChain(preferredId: string, keys: Record<string, string | undefined>) {
-  const preferred = findModel(preferredId);
+  const pool = allModels();
+  const preferred = pool.find((m) => m.id === preferredId) ?? findModel(preferredId);
   const usable = (m: ModelDef) => !m.keyed || !!keys[m.provider]?.trim();
 
-  const rest = MODELS.filter((m) => m.id !== preferred.id && usable(m)).sort((a, b) => {
+  const rest = pool.filter((m) => m.id !== preferred.id && usable(m)).sort((a, b) => {
     // keyed providers first (faster, higher quality), keyless as the safety net
     if (a.keyed !== b.keyed) return a.keyed ? -1 : 1;
     return 0;

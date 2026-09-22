@@ -52,6 +52,13 @@ export default function LimitsCard({ keys }: { keys: Keys }) {
       active: true,
     },
     {
+      name: "Ollama (local models)",
+      free: "Truly unlimited",
+      note: "Runs on your own PC — no key, no quota, offline. Set it up below.",
+      active: true,
+      url: "https://ollama.com/download",
+    },
+    {
       name: "APK builds (GitHub Actions)",
       free: "Unlimited on public repos",
       note: "Private repos get 2,000 minutes/month.",

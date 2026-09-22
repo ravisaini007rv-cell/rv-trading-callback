@@ -1,5 +1,6 @@
 import { findModel, type ModelDef } from "./models";
 import { buildChain, RATE_LIMIT_HINT } from "./fallback";
+import { getOllamaUrl } from "./ollama";
 
 type Args = {
   modelId: string;
@@ -16,6 +17,23 @@ async function openOne(
   model: ModelDef,
   args: Args,
 ): Promise<ReadableStream<Uint8Array> | null> {
+  // Local Ollama: the server lives on the user's own machine, so the browser
+  // must call it directly — never through our API route.
+  if (model.provider === "ollama") {
+    const res = await fetch(`${getOllamaUrl()}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: args.signal,
+      body: JSON.stringify({
+        model: model.model,
+        stream: true,
+        messages: [{ role: "system", content: args.system }, ...args.messages],
+      }),
+    }).catch(() => null);
+
+    return res?.ok && res.body ? sseToText(res.body) : null;
+  }
+
   if (model.provider === "pollinations") {
     const res = await fetch("https://text.pollinations.ai/openai", {
       method: "POST",

@@ -21,9 +21,17 @@ failure.
 | **Video editing, tests, TTS, PDF** | **Genuinely unlimited — runs on your device** |
 | APK builds (GitHub Actions) | Unlimited on public repos |
 
-Want truly unlimited text generation? Run a local model with
-[Ollama](https://ollama.com) — free forever, limited only by your hardware.
+| **Ollama (local models)** | **Truly unlimited** — your own PC, offline, private |
+
 The live version of this table is in **Settings**.
+
+### Unlimited mode: Ollama
+
+Install [Ollama](https://ollama.com/download), run `ollama pull llama3.1:8b`, then set
+`OLLAMA_ORIGINS=*` so the browser may connect. Open **Settings → Local AI** and press
+*Check again* — your installed models appear in every dropdown marked **(local)**, with no
+quota, no key, and no internet required. They also act as a backup when the cloud tiers are
+rate-limited. Full instructions are built into the app.
 
 ## Features
 

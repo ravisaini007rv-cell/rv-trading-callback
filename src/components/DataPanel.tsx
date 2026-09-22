@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Markdown from "./Markdown";
 import { IconSend, IconStop } from "./Icons";
 import { streamChat } from "@/lib/stream";
-import { MODELS } from "@/lib/models";
+import { useModels } from "@/lib/useModels";
 import type { Keys } from "@/lib/types";
 
 type Sheet = { name: string; headers: string[]; rows: string[][] };
@@ -22,6 +22,7 @@ question about the data.
 - Reply in the user's language.`;
 
 export default function DataPanel({ keys, modelId }: { keys: Keys; modelId: string }) {
+  const allModels = useModels();
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -181,7 +182,7 @@ ${sample}`;
                 onChange={(e) => setModel(e.target.value)}
                 className="shrink-0 rounded-lg bg-[var(--panel-2)] px-2 py-1.5 text-xs outline-none"
               >
-                {MODELS.map((m) => (
+                {allModels.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.label}
                   </option>

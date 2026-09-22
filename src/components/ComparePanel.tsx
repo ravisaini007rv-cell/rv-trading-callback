@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import Markdown from "./Markdown";
 import { IconCompare, IconSend, IconStop } from "./Icons";
-import { MODELS, findModel } from "@/lib/models";
+import { findModel } from "@/lib/models";
+import { useModels } from "@/lib/useModels";
 import { streamChat } from "@/lib/stream";
 import { PLAIN_PROMPT } from "@/lib/tools";
 import type { Keys } from "@/lib/types";
@@ -24,6 +25,7 @@ export default function ComparePanel({
   keys: Keys;
   systemPrompt: string;
 }) {
+  const allModels = useModels();
   const [prompt, setPrompt] = useState("");
   const [lanes, setLanes] = useState<Lane[]>(
     DEFAULTS.map((modelId) => ({ modelId, text: "", ms: 0, status: "idle" })),
@@ -150,7 +152,7 @@ export default function ComparePanel({
           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(280px, 1fr))` }}
         >
           {lanes.map((lane, i) => {
-            const m = findModel(lane.modelId);
+            const m = allModels.find((x) => x.id === lane.modelId) ?? findModel(lane.modelId);
             return (
               <div
                 key={i}
@@ -162,7 +164,7 @@ export default function ComparePanel({
                     onChange={(e) => setLane(i, { modelId: e.target.value, text: "" })}
                     className="min-w-0 flex-1 truncate rounded-lg bg-[var(--panel-2)] px-2 py-1 text-xs outline-none"
                   >
-                    {MODELS.map((mm) => (
+                    {allModels.map((mm) => (
                       <option key={mm.id} value={mm.id}>
                         {mm.label}
                         {mm.keyed ? " (key)" : ""}

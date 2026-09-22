@@ -1,4 +1,4 @@
-export type ProviderId = "pollinations" | "groq" | "openrouter" | "gemini";
+export type ProviderId = "pollinations" | "groq" | "openrouter" | "gemini" | "ollama";
 
 export type ModelDef = {
   id: string;
@@ -10,7 +10,9 @@ export type ModelDef = {
   /** Needs a user supplied API key */
   keyed: boolean;
   vision?: boolean;
-  tag?: "fast" | "smart" | "code" | "vision";
+  tag?: "fast" | "smart" | "code" | "vision" | "local";
+  /** Runs on the user's own machine — unlimited, private, offline. */
+  local?: boolean;
 };
 
 /**
@@ -111,7 +113,26 @@ export const MODELS: ModelDef[] = [
 export const DEFAULT_MODEL_ID = "rv-smart";
 
 export function findModel(id: string): ModelDef {
-  return MODELS.find((m) => m.id === id) ?? MODELS[0];
+  const hit = MODELS.find((m) => m.id === id);
+  if (hit) return hit;
+
+  // Local Ollama models are discovered at runtime: "ollama:llama3.1:8b"
+  if (id.startsWith("ollama:")) {
+    const tag = id.slice("ollama:".length);
+    return {
+      id,
+      label: `${tag} (local)`,
+      provider: "ollama",
+      model: tag,
+      hint: "Runs on your PC · unlimited, private, offline",
+      keyed: false,
+      local: true,
+      tag: "local",
+      vision: /llava|vision|moondream/i.test(tag),
+    };
+  }
+
+  return MODELS[0];
 }
 
 export const KEY_FIELDS: { provider: ProviderId; label: string; url: string }[] = [
