@@ -6,9 +6,13 @@ import ImagePanel from "./ImagePanel";
 import VideoPanel from "./VideoPanel";
 import SettingsPanel from "./SettingsPanel";
 import ComparePanel from "./ComparePanel";
+import BuildPanel from "./BuildPanel";
+import TestPanel from "./TestPanel";
 import {
   IconChat,
+  IconCode,
   IconCompare,
+  IconFlask,
   IconImage,
   IconMenu,
   IconMoon,
@@ -21,7 +25,7 @@ import {
 import { DEFAULT_MODEL_ID } from "@/lib/models";
 import { uid, type Conversation, type Keys } from "@/lib/types";
 
-type Tab = "chat" | "compare" | "image" | "video" | "settings";
+type Tab = "chat" | "build" | "test" | "compare" | "image" | "video" | "settings";
 
 const LS = {
   convos: "rv.convos",
@@ -125,6 +129,8 @@ export default function AppShell() {
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "chat", label: "Chat", icon: <IconChat /> },
+    { id: "build", label: "Build", icon: <IconCode /> },
+    { id: "test", label: "Test", icon: <IconFlask /> },
     { id: "compare", label: "Compare", icon: <IconCompare /> },
     { id: "image", label: "Image", icon: <IconImage /> },
     { id: "video", label: "Video", icon: <IconVideo /> },
@@ -173,7 +179,7 @@ export default function AppShell() {
           </button>
         </div>
 
-        <nav className="mt-3 flex gap-1 px-3">
+        <nav className="mt-3 grid grid-cols-3 gap-1 px-3">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -249,6 +255,8 @@ export default function AppShell() {
               systemPrompt={systemPrompt}
             />
           )}
+          {tab === "build" && <BuildPanel keys={keys} modelId={active.modelId} />}
+          {tab === "test" && <TestPanel keys={keys} modelId={active.modelId} />}
           {tab === "compare" && <ComparePanel keys={keys} systemPrompt={systemPrompt} />}
           {tab === "image" && <ImagePanel />}
           {tab === "video" && <VideoPanel />}

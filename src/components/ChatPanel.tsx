@@ -21,6 +21,8 @@ import {
 } from "./Icons";
 import { MODELS, findModel } from "@/lib/models";
 import { streamChat } from "@/lib/stream";
+import { DOC_EXTENSIONS, extractAny } from "@/lib/docs";
+import { isSpeaking, speak, stopSpeaking, ttsAvailable } from "@/lib/speech";
 import { AGENT_PROMPT, PLAIN_PROMPT, executeTool, parseToolCall } from "@/lib/tools";
 import {
   uid,
@@ -50,6 +52,8 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
+  const [extracting, setExtracting] = useState("");
+  const [speakingId, setSpeakingId] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -88,13 +92,15 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
         });
         out.push({ id: uid(), name: f.name, mime: f.type, dataUrl });
       } else {
-        const text = await f.text().catch(() => "");
+        setExtracting(f.name);
+        const text = await extractAny(f).catch(() => "");
         out.push({
           id: uid(),
           name: f.name,
           mime: f.type || "text/plain",
-          text: text.slice(0, 20000),
+          text: text.slice(0, 60000),
         });
+        setExtracting("");
       }
     }
     setAttachments((a) => [...a, ...out].slice(0, 5));
@@ -459,13 +465,39 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
               </div>
             ))}
             {!busy && messages.at(-1)?.role === "assistant" && (
-              <div className="mb-4 ml-11">
+              <div className="mb-4 ml-11 flex gap-2">
                 <button
                   onClick={regenerate}
                   className="rounded-lg border border-[var(--line)] px-2.5 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
                 >
                   ↻ Regenerate
                 </button>
+                <button
+                  onClick={() => {
+                    const last = messages.at(-1)!;
+                    navigator.clipboard?.writeText(last.content);
+                  }}
+                  className="rounded-lg border border-[var(--line)] px-2.5 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                >
+                  ⧉ Copy
+                </button>
+                {ttsAvailable() && (
+                  <button
+                    onClick={() => {
+                      const last = messages.at(-1)!;
+                      if (speakingId === last.id && isSpeaking()) {
+                        stopSpeaking();
+                        setSpeakingId("");
+                      } else {
+                        setSpeakingId(last.id);
+                        speak(last.content, () => setSpeakingId(""));
+                      }
+                    }}
+                    className="rounded-lg border border-[var(--line)] px-2.5 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                  >
+                    {speakingId === messages.at(-1)!.id ? "■ Stop" : "🔊 Listen"}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -475,6 +507,11 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
       {/* composer */}
       <div className="shrink-0 border-t border-[var(--line)] bg-[var(--bg)] px-4 py-3">
         <div className="mx-auto max-w-3xl">
+          {extracting && (
+            <div className="mb-2 text-xs text-[var(--muted)]">
+              Reading {extracting}…
+            </div>
+          )}
           {!!attachments.length && (
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((a) => (
@@ -507,7 +544,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
               multiple
               hidden
               onChange={onFileInput}
-              accept="image/*,.txt,.md,.json,.js,.ts,.tsx,.py,.css,.html,.csv"
+              accept={`image/*,${DOC_EXTENSIONS}`}
             />
             <button
               onClick={() => fileRef.current?.click()}

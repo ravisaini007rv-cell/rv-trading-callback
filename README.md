@@ -12,6 +12,17 @@ in-browser video editing. Built with Next.js 16 + Tailwind 4.
   collapsible tool cards. Up to 6 tool steps per answer. Toggle it off for plain chat.
 - **Compare mode** — send one prompt to 2–4 models at once and see the answers side by side
   with response times.
+- **Build mode** — describe a website and the agent writes real `index.html` / `style.css` /
+  `app.js`, shows a live sandboxed preview, catches runtime errors and offers one-click
+  auto-fix. Edit files by hand, download as ZIP.
+- **APK export** — turn any built site into a Capacitor Android project with a GitHub
+  Actions workflow that produces a real installable APK on free runners. No Android Studio.
+- **Test & QA Lab** — paste JavaScript; the AI writes a test suite, actually **executes** it
+  in a sandboxed worker with a built-in `test`/`expect` harness, shows pass/fail per case
+  with timings, and reviews your code for bugs.
+- **Documents** — attach PDF, DOCX or code files; text is extracted in-browser and fed to
+  the model.
+- **Listen** — any reply can be read aloud (Hindi or English voice, picked automatically).
 - **Chat** — streaming replies, markdown, syntax-highlighted code blocks with copy buttons,
   regenerate, multi-chat history (saved in your browser)
 - **9 models in one dropdown** — 4 that need no key, plus Llama 3.3 70B, Kimi K2, Gemini 2.0

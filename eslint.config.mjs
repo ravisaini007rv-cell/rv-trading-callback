@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     "legacy/**",
+    "public/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

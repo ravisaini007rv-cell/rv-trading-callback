@@ -100,3 +100,16 @@ export const IconCompare = (p: SVGProps<SVGSVGElement>) => (
     <rect x="13.5" y="4" width="7.5" height="16" rx="1.5" />
   </svg>
 );
+
+export const IconCode = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
+  </svg>
+);
+
+export const IconFlask = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M9 3h6M10 3v6l-5.5 9.5A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-2.5L14 9V3" />
+    <path d="M7.5 14h9" />
+  </svg>
+);
