@@ -88,3 +88,15 @@ export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 6h16M4 12h16M4 18h16" />
   </svg>
 );
+
+export const IconBolt = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+  </svg>
+);
+export const IconCompare = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4" width="7.5" height="16" rx="1.5" />
+    <rect x="13.5" y="4" width="7.5" height="16" rx="1.5" />
+  </svg>
+);

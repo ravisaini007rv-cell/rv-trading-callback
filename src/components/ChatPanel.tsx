@@ -10,7 +10,9 @@ import {
   type KeyboardEvent,
 } from "react";
 import Markdown from "./Markdown";
+import ToolRunCard from "./ToolRunCard";
 import {
+  IconBolt,
   IconClip,
   IconMic,
   IconSend,
@@ -19,7 +21,15 @@ import {
 } from "./Icons";
 import { MODELS, findModel } from "@/lib/models";
 import { streamChat } from "@/lib/stream";
-import { uid, type Attachment, type Conversation, type Keys, type Message } from "@/lib/types";
+import { AGENT_PROMPT, PLAIN_PROMPT, executeTool, parseToolCall } from "@/lib/tools";
+import {
+  uid,
+  type Attachment,
+  type Conversation,
+  type Keys,
+  type Message,
+  type ToolRun,
+} from "@/lib/types";
 
 const SUGGESTIONS = [
   { t: "Debug my code", s: "Yeh Python function error de raha hai, fix karke samjhao:" },
@@ -170,80 +180,118 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
     }
 
     const assistantId = uid();
-    const withPlaceholder: Message[] = [
-      ...history,
-      {
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        modelLabel: model.label,
-        createdAt: Date.now(),
-      },
-    ];
+    const baseTitle =
+      conversation.title === "New chat" && (text || history[0]?.content)
+        ? (text || history[0].content).slice(0, 44)
+        : conversation.title;
+
+    // Local mirror of the assistant message, flushed to the store on each tick.
+    let visible = "";
+    let runs: ToolRun[] = [];
+
+    const flush = (content: string) => {
+      onChange({
+        ...conversation,
+        title: baseTitle,
+        updatedAt: Date.now(),
+        messages: [
+          ...history,
+          {
+            id: assistantId,
+            role: "assistant",
+            content,
+            modelLabel: model.label,
+            toolRuns: runs.length ? [...runs] : undefined,
+            createdAt: Date.now(),
+          },
+        ],
+      });
+    };
 
     stickToBottom.current = true;
     setBusy(true);
-    onChange({
-      ...conversation,
-      messages: withPlaceholder,
-      title:
-        conversation.title === "New chat" && (text || history[0]?.content)
-          ? (text || history[0].content).slice(0, 44)
-          : conversation.title,
-      updatedAt: Date.now(),
-    });
+    flush("");
 
     const controller = new AbortController();
     abortRef.current = controller;
 
-    let acc = "";
-    try {
-      const stream = await streamChat({
-        modelId: conversation.modelId,
-        system: systemPrompt,
-        keys,
-        messages: buildApiMessages(history),
-        signal: controller.signal,
-      });
+    // Transcript sent to the model; grows as tools return results.
+    const apiMessages = buildApiMessages(history);
+    const agentMode = conversation.agent !== false;
+    const system = agentMode
+      ? AGENT_PROMPT + (systemPrompt ? `\n\nUSER PREFERENCES\n${systemPrompt}` : "")
+      : systemPrompt || PLAIN_PROMPT;
 
-      const reader = stream?.getReader();
-      const dec = new TextDecoder();
-      if (reader) {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acc += dec.decode(value, { stream: true });
-          onChange({
-            ...conversation,
-            messages: withPlaceholder.map((m) =>
-              m.id === assistantId ? { ...m, content: acc } : m,
-            ),
-            title:
-              conversation.title === "New chat" && text
-                ? text.slice(0, 44)
-                : conversation.title,
-            updatedAt: Date.now(),
-          });
+    try {
+      const MAX_STEPS = agentMode ? 6 : 1;
+
+      for (let step = 0; step < MAX_STEPS; step++) {
+        const stream = await streamChat({
+          modelId: conversation.modelId,
+          system,
+          keys,
+          messages: apiMessages,
+          signal: controller.signal,
+        });
+
+        const reader = stream?.getReader();
+        const dec = new TextDecoder();
+        let turn = "";
+        const prefix = visible;
+
+        if (reader) {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            turn += dec.decode(value, { stream: true });
+            // hide the raw tool block from the user while it streams
+            visible = prefix + turn.replace(/```tool[\s\S]*$/, "");
+            flush(visible);
+          }
+        }
+
+        const call = agentMode ? parseToolCall(turn) : null;
+        if (!call) {
+          visible = prefix + turn;
+          flush(visible);
+          break;
+        }
+
+        // record + run the tool
+        const runId = uid();
+        runs = [...runs, { id: runId, tool: call.tool, args: call.args, status: "running" }];
+        visible = prefix + turn.replace(call.raw, "").trimEnd();
+        flush(visible);
+
+        const { text: result, imageUrl } = await executeTool(call.tool, call.args);
+        const failed = result.startsWith("Error:");
+        runs = runs.map((r) =>
+          r.id === runId
+            ? { ...r, status: failed ? "error" : "done", result, imageUrl }
+            : r,
+        );
+        if (imageUrl) visible += `\n\n![${call.args.prompt ?? "image"}](${imageUrl})\n`;
+        flush(visible);
+
+        apiMessages.push({ role: "assistant", content: turn });
+        apiMessages.push({
+          role: "user",
+          content: `TOOL RESULT (${call.tool}):\n${result}\n\nContinue. If you have enough information, give the final answer now with no tool block.`,
+        });
+
+        if (step === MAX_STEPS - 1) {
+          visible += "\n\n_(tool step limit reached)_";
+          flush(visible);
         }
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
-        acc += "\n\n⚠️ Something went wrong. Please try again.";
+        visible += "\n\n⚠️ Something went wrong. Please try again.";
       }
     } finally {
       setBusy(false);
       abortRef.current = null;
-      onChange({
-        ...conversation,
-        messages: withPlaceholder.map((m) =>
-          m.id === assistantId
-            ? { ...m, content: acc || "_(no response — try another model)_" }
-            : m,
-        ),
-        title:
-          conversation.title === "New chat" && text ? text.slice(0, 44) : conversation.title,
-        updatedAt: Date.now(),
-      });
+      flush(visible || "_(no response — try another model)_");
     }
   };
 
@@ -294,7 +342,19 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
             ))}
           </optgroup>
         </select>
-        <span className="hidden truncate text-xs text-[var(--muted)] sm:block">{model.hint}</span>
+        <button
+          onClick={() => onChange({ ...conversation, agent: conversation.agent === false })}
+          title="Agent mode: lets the AI search the web, read pages, run code and make images"
+          className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+            conversation.agent !== false
+              ? "border-transparent bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] text-white"
+              : "border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]"
+          }`}
+        >
+          <IconBolt width={14} height={14} />
+          Agent
+        </button>
+        <span className="hidden truncate text-xs text-[var(--muted)] lg:block">{model.hint}</span>
         <div className="ml-auto flex items-center gap-1">
           {messages.length > 0 && (
             <button
@@ -371,13 +431,20 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
                       )}
                     </div>
                   )}
+                  {!!m.toolRuns?.length && (
+                    <div className="mb-1">
+                      {m.toolRuns.map((r) => (
+                        <ToolRunCard key={r.id} run={r} />
+                      ))}
+                    </div>
+                  )}
                   {m.role === "user" ? (
                     <div className="whitespace-pre-wrap rounded-xl bg-[var(--panel)] px-3.5 py-2.5 text-[15px] leading-relaxed">
                       {m.content}
                     </div>
                   ) : m.content ? (
                     <Markdown>{m.content}</Markdown>
-                  ) : (
+                  ) : m.toolRuns?.length ? null : (
                     <div className="flex gap-1.5 py-2">
                       {[0, 1, 2].map((i) => (
                         <span

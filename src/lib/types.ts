@@ -7,6 +7,15 @@ export type Attachment = {
   text?: string;
 };
 
+export type ToolRun = {
+  id: string;
+  tool: string;
+  args: Record<string, string>;
+  status: "running" | "done" | "error";
+  result?: string;
+  imageUrl?: string;
+};
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
@@ -16,6 +25,7 @@ export type Message = {
   createdAt: number;
   /** generated image url, when the message is an image result */
   imageUrl?: string;
+  toolRuns?: ToolRun[];
 };
 
 export type Conversation = {
@@ -24,6 +34,7 @@ export type Conversation = {
   messages: Message[];
   modelId: string;
   updatedAt: number;
+  agent?: boolean;
 };
 
 export type Keys = {

@@ -7,6 +7,11 @@ in-browser video editing. Built with Next.js 16 + Tailwind 4.
 
 ## Features
 
+- **Agent mode** — the AI uses real tools on its own: live web search, reading web pages,
+  running JavaScript in a sandboxed worker, and generating images. You watch each step in
+  collapsible tool cards. Up to 6 tool steps per answer. Toggle it off for plain chat.
+- **Compare mode** — send one prompt to 2–4 models at once and see the answers side by side
+  with response times.
 - **Chat** — streaming replies, markdown, syntax-highlighted code blocks with copy buttons,
   regenerate, multi-chat history (saved in your browser)
 - **9 models in one dropdown** — 4 that need no key, plus Llama 3.3 70B, Kimi K2, Gemini 2.0
@@ -18,6 +23,15 @@ in-browser video editing. Built with Next.js 16 + Tailwind 4.
 - **Video Studio** — trim, GIF, mute, extract MP3, compress, crop to 9:16. Runs on FFmpeg
   WebAssembly entirely on your device; nothing is uploaded
 - **Custom instructions**, dark/light theme, fully responsive
+
+## Tools the agent can use
+
+| Tool | What it does | Runs on |
+|---|---|---|
+| `web_search` | Live DuckDuckGo search, no key needed | server |
+| `fetch_url` | Reads the text of any page or JSON API | server |
+| `run_js` | Executes JavaScript in a sandboxed Web Worker (5s timeout) | your browser |
+| `generate_image` | Makes an image and drops it into the reply | your browser |
 
 ## Run it
 

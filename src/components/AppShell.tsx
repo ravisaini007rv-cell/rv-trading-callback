@@ -5,8 +5,10 @@ import ChatPanel from "./ChatPanel";
 import ImagePanel from "./ImagePanel";
 import VideoPanel from "./VideoPanel";
 import SettingsPanel from "./SettingsPanel";
+import ComparePanel from "./ComparePanel";
 import {
   IconChat,
+  IconCompare,
   IconImage,
   IconMenu,
   IconMoon,
@@ -19,7 +21,7 @@ import {
 import { DEFAULT_MODEL_ID } from "@/lib/models";
 import { uid, type Conversation, type Keys } from "@/lib/types";
 
-type Tab = "chat" | "image" | "video" | "settings";
+type Tab = "chat" | "compare" | "image" | "video" | "settings";
 
 const LS = {
   convos: "rv.convos",
@@ -123,6 +125,7 @@ export default function AppShell() {
 
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "chat", label: "Chat", icon: <IconChat /> },
+    { id: "compare", label: "Compare", icon: <IconCompare /> },
     { id: "image", label: "Image", icon: <IconImage /> },
     { id: "video", label: "Video", icon: <IconVideo /> },
     { id: "settings", label: "Settings", icon: <IconSettings /> },
@@ -179,7 +182,7 @@ export default function AppShell() {
                 setSidebar(false);
               }}
               title={t.label}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-lg py-2 text-[10px] transition ${
+              className={`flex flex-1 flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] transition ${
                 tab === t.id
                   ? "bg-[var(--panel-2)] text-[var(--text)]"
                   : "text-[var(--muted)] hover:text-[var(--text)]"
@@ -246,6 +249,7 @@ export default function AppShell() {
               systemPrompt={systemPrompt}
             />
           )}
+          {tab === "compare" && <ComparePanel keys={keys} systemPrompt={systemPrompt} />}
           {tab === "image" && <ImagePanel />}
           {tab === "video" && <VideoPanel />}
           {tab === "settings" && (
