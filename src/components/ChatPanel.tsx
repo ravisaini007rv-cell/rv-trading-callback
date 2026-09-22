@@ -11,6 +11,7 @@ import {
 } from "react";
 import Markdown from "./Markdown";
 import ToolRunCard from "./ToolRunCard";
+import WorkspaceCard from "./WorkspaceCard";
 import {
   IconBolt,
   IconBook,
@@ -30,7 +31,14 @@ import { MEMORY_INSTRUCTION, addMemory, extractMemoryMarkers, memoryBlock } from
 import { exportJson, exportMarkdown, exportPdf } from "@/lib/exporter";
 import { BUILTIN, deletePrompt, loadPrompts, savePrompt, type Prompt } from "@/lib/prompts";
 import { isSpeaking, speak, stopSpeaking, ttsAvailable } from "@/lib/speech";
-import { AGENT_PROMPT, PLAIN_PROMPT, executeTool, parseToolCall } from "@/lib/tools";
+import {
+  AGENT_PROMPT,
+  PLAIN_PROMPT,
+  executeTool,
+  parsePlan,
+  parseToolCall,
+} from "@/lib/tools";
+import { vfs } from "@/lib/vfs";
 import {
   uid,
   type Attachment,
@@ -77,6 +85,8 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   const handsFree = useRef(false);
   const [handsFreeOn, setHandsFreeOn] = useState(false);
   const [turbo, setTurbo] = useState(false);
+  const [planSteps, setPlanSteps] = useState<string[]>([]);
+  const [doneSteps, setDoneSteps] = useState(0);
   const [speakingId, setSpeakingId] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -243,6 +253,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
     // Local mirror of the assistant message, flushed to the store on each tick.
     let visible = "";
     let runs: ToolRun[] = [];
+    let plan: string[] = [];
 
     const flush = (content: string) => {
       onChange({
@@ -266,6 +277,8 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
     stickToBottom.current = true;
     setBusy(true);
     setFallback("");
+    setPlanSteps([]);
+    setDoneSteps(0);
     flush("");
 
     const controller = new AbortController();
@@ -279,10 +292,11 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
         ? AGENT_PROMPT + (systemPrompt ? `\n\nUSER PREFERENCES\n${systemPrompt}` : "")
         : systemPrompt || PLAIN_PROMPT) +
       MEMORY_INSTRUCTION +
-      memoryBlock();
+      memoryBlock() +
+      (agentMode ? vfs.summary() : "");
 
     try {
-      const MAX_STEPS = agentMode ? 6 : 1;
+      const MAX_STEPS = agentMode ? 12 : 1;
 
       for (let step = 0; step < MAX_STEPS; step++) {
         const stream = await streamChat({
@@ -313,8 +327,8 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           }
         }
 
-        const call = agentMode ? parseToolCall(turn) : null;
-        if (!call) {
+        const parsed = agentMode ? parseToolCall(turn) : null;
+        if (!parsed) {
           const { clean, facts } = extractMemoryMarkers(turn);
           facts.forEach(addMemory);
           if (facts.length) setMemoryToast(`Remembered: ${facts[0]}`);
@@ -323,30 +337,57 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           break;
         }
 
-        // record + run the tool
-        const runId = uid();
-        runs = [...runs, { id: runId, tool: call.tool, args: call.args, status: "running" }];
-        visible = prefix + turn.replace(call.raw, "").trimEnd();
+        // surface the plan as a checklist the first time we see one
+        const found = parsePlan(turn);
+        if (found.length && !plan.length) {
+          plan = found;
+          setPlanSteps(found);
+        }
+
+        // register every call, then run them together
+        const ids = parsed.calls.map(() => uid());
+        runs = [
+          ...runs,
+          ...parsed.calls.map((c, i) => ({
+            id: ids[i],
+            tool: c.tool,
+            args: c.args,
+            status: "running" as const,
+          })),
+        ];
+        visible = prefix + turn.replace(parsed.raw, "").trimEnd();
         flush(visible);
 
-        const { text: result, imageUrl } = await executeTool(call.tool, call.args);
-        const failed = result.startsWith("Error:");
-        runs = runs.map((r) =>
-          r.id === runId
-            ? { ...r, status: failed ? "error" : "done", result, imageUrl }
-            : r,
+        const results = await Promise.all(
+          parsed.calls.map((c) => executeTool(c.tool, c.args)),
         );
-        if (imageUrl) visible += `\n\n![${call.args.prompt ?? "image"}](${imageUrl})\n`;
+
+        results.forEach(({ text: result, imageUrl }, i) => {
+          const failed = result.startsWith("Error:");
+          runs = runs.map((r) =>
+            r.id === ids[i]
+              ? { ...r, status: failed ? ("error" as const) : ("done" as const), result, imageUrl }
+              : r,
+          );
+          if (imageUrl) {
+            visible += `\n\n![${parsed.calls[i].args.prompt ?? "image"}](${imageUrl})\n`;
+          }
+        });
+        setDoneSteps((n) => n + 1);
         flush(visible);
 
         apiMessages.push({ role: "assistant", content: turn });
         apiMessages.push({
           role: "user",
-          content: `TOOL RESULT (${call.tool}):\n${result}\n\nContinue. If you have enough information, give the final answer now with no tool block.`,
+          content:
+            results
+              .map((r, i) => `TOOL RESULT (${parsed.calls[i].tool}):\n${r.text}`)
+              .join("\n\n") +
+            "\n\nContinue. Fix any errors above yourself. When the work is done and verified, give the final answer with no tool block.",
         });
 
         if (step === MAX_STEPS - 1) {
-          visible += "\n\n_(tool step limit reached)_";
+          visible += "\n\n_(tool step limit reached — ask me to continue)_";
           flush(visible);
         }
       }
@@ -613,6 +654,31 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
       {/* composer */}
       <div className="shrink-0 border-t border-[var(--line)] bg-[var(--bg)] px-4 py-3">
         <div className="mx-auto max-w-3xl">
+          <WorkspaceCard />
+          {busy && planSteps.length > 0 && (
+            <div className="mb-2 rounded-xl border border-[var(--line)] bg-[var(--panel-2)] p-2.5">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-[var(--muted)]">
+                <span className="dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                Plan — step {Math.min(doneSteps + 1, planSteps.length)} of {planSteps.length}
+              </div>
+              <ol className="space-y-0.5 text-xs">
+                {planSteps.map((st, i) => (
+                  <li
+                    key={i}
+                    className={
+                      i < doneSteps
+                        ? "text-emerald-400 line-through opacity-70"
+                        : i === doneSteps
+                          ? "text-[var(--text)]"
+                          : "text-[var(--muted)]"
+                    }
+                  >
+                    {i < doneSteps ? "✓" : i === doneSteps ? "▸" : "○"} {st}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
           {fallback && (
             <div className="mb-2 text-xs text-amber-400/90">↻ {fallback}</div>
           )}

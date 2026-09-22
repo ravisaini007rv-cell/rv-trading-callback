@@ -57,9 +57,16 @@ rate-limited. Full instructions are built into the app.
 - **Prompt library** — 8 built-in prompts plus your own saved ones.
 - **Export** — any chat to Markdown, PDF or JSON.
 - **Installable PWA** — add to your home screen, UI works offline.
-- **Agent mode** — the AI uses real tools on its own: live web search, reading web pages,
-  running JavaScript in a sandboxed worker, and generating images. You watch each step in
-  collapsible tool cards. Up to 6 tool steps per answer. Toggle it off for plain chat.
+- **Agent mode** — a real agent harness, not just a chatbot with a search button:
+  - **9 tools**: `web_search`, `fetch_url`, `run_js`, `write_file`, `read_file`,
+    `edit_file`, `list_files`, `grep`, `generate_image`
+  - **Plans first** — multi-step tasks open with a plan, shown live as a ticking checklist
+  - **Parallel tool calls** — independent calls run concurrently (~3× faster)
+  - **A real workspace** — files persist across turns, so it can write code, read it back,
+    patch it and grep it like an engineer working in a repo
+  - **Self-verification** — it is required to run the code it writes and fix its own errors
+    rather than handing them to you
+  - Up to 12 tool steps per answer, every step visible in collapsible cards
 - **Compare mode** — send one prompt to 2–4 models at once and see the answers side by side
   with response times.
 - **Build mode** — describe a website and the agent writes real `index.html` / `style.css` /
