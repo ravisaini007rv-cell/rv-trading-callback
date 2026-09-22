@@ -8,7 +8,9 @@ import SettingsPanel from "./SettingsPanel";
 import ComparePanel from "./ComparePanel";
 import BuildPanel from "./BuildPanel";
 import TestPanel from "./TestPanel";
+import DataPanel from "./DataPanel";
 import {
+  IconChart,
   IconChat,
   IconCode,
   IconCompare,
@@ -25,7 +27,7 @@ import {
 import { DEFAULT_MODEL_ID } from "@/lib/models";
 import { uid, type Conversation, type Keys } from "@/lib/types";
 
-type Tab = "chat" | "build" | "test" | "compare" | "image" | "video" | "settings";
+type Tab = "chat" | "build" | "test" | "data" | "compare" | "image" | "video" | "settings";
 
 const LS = {
   convos: "rv.convos",
@@ -131,6 +133,7 @@ export default function AppShell() {
     { id: "chat", label: "Chat", icon: <IconChat /> },
     { id: "build", label: "Build", icon: <IconCode /> },
     { id: "test", label: "Test", icon: <IconFlask /> },
+    { id: "data", label: "Data", icon: <IconChart /> },
     { id: "compare", label: "Compare", icon: <IconCompare /> },
     { id: "image", label: "Image", icon: <IconImage /> },
     { id: "video", label: "Video", icon: <IconVideo /> },
@@ -179,7 +182,7 @@ export default function AppShell() {
           </button>
         </div>
 
-        <nav className="mt-3 grid grid-cols-3 gap-1 px-3">
+        <nav className="mt-3 grid grid-cols-4 gap-1 px-3">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -257,6 +260,7 @@ export default function AppShell() {
           )}
           {tab === "build" && <BuildPanel keys={keys} modelId={active.modelId} />}
           {tab === "test" && <TestPanel keys={keys} modelId={active.modelId} />}
+          {tab === "data" && <DataPanel keys={keys} modelId={active.modelId} />}
           {tab === "compare" && <ComparePanel keys={keys} systemPrompt={systemPrompt} />}
           {tab === "image" && <ImagePanel />}
           {tab === "video" && <VideoPanel />}

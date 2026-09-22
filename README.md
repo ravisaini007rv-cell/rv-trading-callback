@@ -5,8 +5,37 @@ in-browser video editing. Built with Next.js 16 + Tailwind 4.
 
 **It works with zero configuration.** The default models need no API key at all.
 
+## Free capacity — the honest version
+
+Nothing here costs money, but "free" is not "infinite". The app is built around that:
+**if one provider is rate-limited it silently retries the next one**, so you rarely see a
+failure.
+
+| Source | Real free limit |
+|---|---|
+| Pollinations (default, no key) | Unmetered, ~1 req / 5 s, slower when busy |
+| Groq | ~14,400 req/day, 30/min |
+| Google Gemini | 1,500 req/day (Flash) |
+| OpenRouter `:free` models | ~50/day (1,000 with a one-time $10 credit) |
+| Image generation | Unmetered (fair use) |
+| **Video editing, tests, TTS, PDF** | **Genuinely unlimited — runs on your device** |
+| APK builds (GitHub Actions) | Unlimited on public repos |
+
+Want truly unlimited text generation? Run a local model with
+[Ollama](https://ollama.com) — free forever, limited only by your hardware.
+The live version of this table is in **Settings**.
+
 ## Features
 
+- **Memory** — remembers durable facts about you across every chat; view and forget them
+  in Settings.
+- **Auto-fallback** — rate-limited provider? It switches models mid-request and tells you.
+- **Data Analyst** — upload a CSV and ask questions; get tables and charts back.
+- **Diagrams** — mermaid flowcharts, pie and xy charts render inline in any reply.
+- **Hands-free voice** — speak, it answers aloud, then listens again.
+- **Prompt library** — 8 built-in prompts plus your own saved ones.
+- **Export** — any chat to Markdown, PDF or JSON.
+- **Installable PWA** — add to your home screen, UI works offline.
 - **Agent mode** — the AI uses real tools on its own: live web search, reading web pages,
   running JavaScript in a sandboxed worker, and generating images. You watch each step in
   collapsible tool cards. Up to 6 tool steps per answer. Toggle it off for plain chat.

@@ -13,7 +13,10 @@ import Markdown from "./Markdown";
 import ToolRunCard from "./ToolRunCard";
 import {
   IconBolt,
+  IconBook,
   IconClip,
+  IconDownload,
+  IconWave,
   IconMic,
   IconSend,
   IconStop,
@@ -22,6 +25,9 @@ import {
 import { MODELS, findModel } from "@/lib/models";
 import { streamChat } from "@/lib/stream";
 import { DOC_EXTENSIONS, extractAny } from "@/lib/docs";
+import { MEMORY_INSTRUCTION, addMemory, extractMemoryMarkers, memoryBlock } from "@/lib/memory";
+import { exportJson, exportMarkdown, exportPdf } from "@/lib/exporter";
+import { BUILTIN, deletePrompt, loadPrompts, savePrompt, type Prompt } from "@/lib/prompts";
 import { isSpeaking, speak, stopSpeaking, ttsAvailable } from "@/lib/speech";
 import { AGENT_PROMPT, PLAIN_PROMPT, executeTool, parseToolCall } from "@/lib/tools";
 import {
@@ -53,6 +59,13 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [extracting, setExtracting] = useState("");
+  const [fallback, setFallback] = useState("");
+  const [memoryToast, setMemoryToast] = useState("");
+  const [prompts, setPrompts] = useState<Prompt[]>(BUILTIN);
+  const [showLib, setShowLib] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const handsFree = useRef(false);
+  const [handsFreeOn, setHandsFreeOn] = useState(false);
   const [speakingId, setSpeakingId] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -72,6 +85,8 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   useEffect(() => {
     if (stickToBottom.current) scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => setPrompts(loadPrompts()), []);
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -112,7 +127,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
   };
 
   /* ---------------- voice input ---------------- */
-  const toggleMic = () => {
+  const startListening = (autoSend = false) => {
     type SR = new () => {
       lang: string;
       interimResults: boolean;
@@ -128,22 +143,41 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
       alert("Voice input is not supported in this browser. Try Chrome.");
       return;
     }
-    if (listening) {
-      setListening(false);
-      return;
-    }
     const rec = new Ctor();
     rec.lang = "en-IN";
     rec.interimResults = true;
     rec.continuous = false;
+    let finalText = "";
     rec.onresult = (e) => {
       let txt = "";
       for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      finalText = txt;
       setInput(txt);
     };
-    rec.onend = () => setListening(false);
+    rec.onend = () => {
+      setListening(false);
+      if (autoSend && finalText.trim()) send(finalText);
+    };
     rec.start();
     setListening(true);
+  };
+
+  const toggleMic = () => {
+    if (listening) {
+      setListening(false);
+      return;
+    }
+    startListening(false);
+  };
+
+  const toggleHandsFree = () => {
+    handsFree.current = !handsFree.current;
+    setHandsFreeOn(handsFree.current);
+    if (handsFree.current) startListening(true);
+    else {
+      stopSpeaking();
+      setListening(false);
+    }
   };
 
   /* ---------------- sending ---------------- */
@@ -216,6 +250,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
 
     stickToBottom.current = true;
     setBusy(true);
+    setFallback("");
     flush("");
 
     const controller = new AbortController();
@@ -224,9 +259,12 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
     // Transcript sent to the model; grows as tools return results.
     const apiMessages = buildApiMessages(history);
     const agentMode = conversation.agent !== false;
-    const system = agentMode
-      ? AGENT_PROMPT + (systemPrompt ? `\n\nUSER PREFERENCES\n${systemPrompt}` : "")
-      : systemPrompt || PLAIN_PROMPT;
+    const system =
+      (agentMode
+        ? AGENT_PROMPT + (systemPrompt ? `\n\nUSER PREFERENCES\n${systemPrompt}` : "")
+        : systemPrompt || PLAIN_PROMPT) +
+      MEMORY_INSTRUCTION +
+      memoryBlock();
 
     try {
       const MAX_STEPS = agentMode ? 6 : 1;
@@ -238,6 +276,7 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           keys,
           messages: apiMessages,
           signal: controller.signal,
+          onFallback: (from, to) => setFallback(`${from} busy → switched to ${to}`),
         });
 
         const reader = stream?.getReader();
@@ -251,14 +290,19 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
             if (done) break;
             turn += dec.decode(value, { stream: true });
             // hide the raw tool block from the user while it streams
-            visible = prefix + turn.replace(/```tool[\s\S]*$/, "");
+            visible =
+              prefix +
+              turn.replace(/```tool[\s\S]*$/, "").replace(/\[remember:[^\]]*\]?/gi, "");
             flush(visible);
           }
         }
 
         const call = agentMode ? parseToolCall(turn) : null;
         if (!call) {
-          visible = prefix + turn;
+          const { clean, facts } = extractMemoryMarkers(turn);
+          facts.forEach(addMemory);
+          if (facts.length) setMemoryToast(`Remembered: ${facts[0]}`);
+          visible = (prefix + clean).trimEnd();
           flush(visible);
           break;
         }
@@ -298,6 +342,12 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
       setBusy(false);
       abortRef.current = null;
       flush(visible || "_(no response — try another model)_");
+
+      if (handsFree.current && visible) {
+        speak(visible, () => {
+          if (handsFree.current) startListening(true);
+        });
+      }
     }
   };
 
@@ -362,6 +412,22 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
         </button>
         <span className="hidden truncate text-xs text-[var(--muted)] lg:block">{model.hint}</span>
         <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={() => setShowLib(true)}
+            title="Prompt library"
+            className="rounded-lg border border-[var(--line)] p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
+          >
+            <IconBook width={16} height={16} />
+          </button>
+          {messages.length > 0 && (
+            <button
+              onClick={() => setShowExport(true)}
+              title="Export chat"
+              className="rounded-lg border border-[var(--line)] p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
+            >
+              <IconDownload width={16} height={16} />
+            </button>
+          )}
           {messages.length > 0 && (
             <button
               onClick={() => onChange({ ...conversation, messages: [], title: "New chat" })}
@@ -507,6 +573,17 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
       {/* composer */}
       <div className="shrink-0 border-t border-[var(--line)] bg-[var(--bg)] px-4 py-3">
         <div className="mx-auto max-w-3xl">
+          {fallback && (
+            <div className="mb-2 text-xs text-amber-400/90">↻ {fallback}</div>
+          )}
+          {memoryToast && (
+            <div className="mb-2 flex items-center gap-2 text-xs text-[var(--muted)]">
+              🧠 {memoryToast}
+              <button onClick={() => setMemoryToast("")} className="underline">
+                dismiss
+              </button>
+            </div>
+          )}
           {extracting && (
             <div className="mb-2 text-xs text-[var(--muted)]">
               Reading {extracting}…
@@ -554,6 +631,15 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
               <IconClip />
             </button>
             <button
+              onClick={toggleHandsFree}
+              title="Hands-free conversation: speak, listen, repeat"
+              className={`rounded-lg p-2 ${
+                handsFreeOn ? "text-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--text)]"
+              }`}
+            >
+              <IconWave />
+            </button>
+            <button
               onClick={toggleMic}
               title="Voice input"
               className={`rounded-lg p-2 hover:text-[var(--text)] ${
@@ -598,6 +684,111 @@ export default function ChatPanel({ conversation, onChange, keys, systemPrompt }
           </p>
         </div>
       </div>
+
+      {showLib && (
+        <div
+          className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4"
+          onClick={() => setShowLib(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5"
+          >
+            <h3 className="text-lg font-semibold">📚 Prompt library</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Click one to load it into the composer.
+            </p>
+            <div className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+              {prompts.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2"
+                >
+                  <button
+                    onClick={() => {
+                      setInput(p.body);
+                      setShowLib(false);
+                    }}
+                    className="min-w-0 flex-1 text-left text-sm"
+                  >
+                    <div className="font-medium">{p.title}</div>
+                    <div className="truncate text-xs text-[var(--muted)]">
+                      {p.body.replace(/\n/g, " ").slice(0, 60)}
+                    </div>
+                  </button>
+                  {!p.builtin && (
+                    <button
+                      onClick={() => setPrompts(deletePrompt(p.id))}
+                      className="shrink-0 text-xs text-[var(--muted)] hover:text-red-400"
+                    >
+                      delete
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex justify-between gap-2">
+              <button
+                onClick={() => {
+                  if (!input.trim()) {
+                    alert("Type something in the composer first, then save it.");
+                    return;
+                  }
+                  const title = window.prompt("Name this prompt:");
+                  if (title) setPrompts(savePrompt(title, input));
+                }}
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--muted)]"
+              >
+                + Save current input
+              </button>
+              <button
+                onClick={() => setShowLib(false)}
+                className="rounded-lg bg-[var(--panel-2)] px-4 py-2 text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExport && (
+        <div
+          className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4"
+          onClick={() => setShowExport(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5"
+          >
+            <h3 className="text-lg font-semibold">Export this chat</h3>
+            <div className="mt-4 space-y-2">
+              {[
+                { label: "📝 Markdown (.md)", fn: () => exportMarkdown(conversation) },
+                { label: "📄 PDF (via print)", fn: () => exportPdf(conversation) },
+                { label: "🗂 JSON (backup)", fn: () => exportJson(conversation) },
+              ].map((o) => (
+                <button
+                  key={o.label}
+                  onClick={() => {
+                    o.fn();
+                    setShowExport(false);
+                  }}
+                  className="w-full rounded-lg border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2.5 text-left text-sm hover:border-[var(--accent)]"
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowExport(false)}
+              className="mt-4 w-full rounded-lg px-4 py-2 text-sm text-[var(--muted)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

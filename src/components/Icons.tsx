@@ -113,3 +113,23 @@ export const IconFlask = (p: SVGProps<SVGSVGElement>) => (
     <path d="M7.5 14h9" />
   </svg>
 );
+
+export const IconBook = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14Z" />
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 22H20v-5" />
+  </svg>
+);
+
+export const IconChart = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3 3v18h18" />
+    <path d="M7 15l4-5 3 3 5-7" />
+  </svg>
+);
+
+export const IconWave = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M2 12h2M6 8v8M10 4v16M14 7v10M18 10v4M22 12h0" />
+  </svg>
+);

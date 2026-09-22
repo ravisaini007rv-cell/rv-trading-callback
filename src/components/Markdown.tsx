@@ -4,6 +4,7 @@ import { useState, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import Mermaid from "./Mermaid";
 
 function CopyButton({ getText }: { getText: () => string }) {
   const [done, setDone] = useState(false);
@@ -43,6 +44,10 @@ function Markdown({ children }: { children: string }) {
         components={{
           pre({ children }) {
             const code = extractText(children);
+            const language =
+              (children as { props?: { className?: string } } | undefined)?.props
+                ?.className?.match(/language-([\w+-]+)/)?.[1] ?? "";
+            if (language === "mermaid") return <Mermaid chart={code} />;
             const lang =
               (children as { props?: { className?: string } } | undefined)?.props
                 ?.className?.match(/language-([\w+-]+)/)?.[1] ?? "code";

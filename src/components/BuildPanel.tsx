@@ -48,6 +48,7 @@ export default function BuildPanel({
   const [view, setView] = useState<"preview" | "code">("preview");
   const [appName, setAppName] = useState("RV App");
   const [showApk, setShowApk] = useState(false);
+  const [showDeploy, setShowDeploy] = useState(false);
   const [model, setModel] = useState(modelId);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -196,6 +197,13 @@ export default function BuildPanel({
               <IconDownload width={14} height={14} /> ZIP
             </button>
             <button
+              onClick={() => setShowDeploy(true)}
+              title="Publish this site online for free"
+              className="flex items-center gap-1 rounded-lg border border-[var(--line)] px-2 py-1 text-[var(--muted)] hover:text-[var(--text)]"
+            >
+              🚀 Deploy
+            </button>
+            <button
               onClick={() => setShowApk(true)}
               title="Export as an Android app project"
               className="flex items-center gap-1 rounded-lg border border-[var(--line)] px-2 py-1 text-[var(--muted)] hover:text-[var(--text)]"
@@ -277,6 +285,89 @@ export default function BuildPanel({
           </div>
         )}
       </div>
+
+      {showDeploy && (
+        <div
+          className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4"
+          onClick={() => setShowDeploy(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5"
+          >
+            <h3 className="text-lg font-semibold">🚀 Put this site online — free</h3>
+
+            <ol className="mt-4 space-y-3 text-sm">
+              <li className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-3">
+                <strong>1. Download the files</strong>
+                <p className="mt-1 text-[var(--muted)]">
+                  Grab the ZIP — it contains index.html, style.css and app.js.
+                </p>
+                <button
+                  onClick={() => downloadZip(files)}
+                  className="mt-2 rounded-lg bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] px-3 py-1.5 text-xs font-medium text-white"
+                >
+                  Download ZIP
+                </button>
+              </li>
+
+              <li className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-3">
+                <strong>2. Pick a free host</strong>
+                <div className="mt-2 space-y-2 text-[var(--muted)]">
+                  <p>
+                    <a
+                      className="text-[var(--accent)] underline"
+                      href="https://app.netlify.com/drop"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Netlify Drop ↗
+                    </a>{" "}
+                    — easiest: drag the unzipped folder onto the page, live URL in seconds, no
+                    account needed to start.
+                  </p>
+                  <p>
+                    <a
+                      className="text-[var(--accent)] underline"
+                      href="https://vercel.com/new"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Vercel ↗
+                    </a>{" "}
+                    — import a GitHub repo, auto-redeploys on every push. 100 GB/month free.
+                  </p>
+                  <p>
+                    <a
+                      className="text-[var(--accent)] underline"
+                      href="https://github.com/new"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      GitHub Pages ↗
+                    </a>{" "}
+                    — upload the files to a repo, then Settings → Pages → deploy from main.
+                  </p>
+                </div>
+              </li>
+
+              <li className="rounded-lg border border-[var(--line)] bg-[var(--panel-2)] p-3">
+                <strong>3. Want an app instead?</strong>
+                <p className="mt-1 text-[var(--muted)]">
+                  Use the 📱 APK button — it builds a real Android app from these same files.
+                </p>
+              </li>
+            </ol>
+
+            <button
+              onClick={() => setShowDeploy(false)}
+              className="mt-4 w-full rounded-lg bg-[var(--panel-2)] px-4 py-2 text-sm"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {showApk && (
         <div

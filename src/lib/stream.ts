@@ -1,4 +1,5 @@
-import { findModel } from "./models";
+import { findModel, type ModelDef } from "./models";
+import { buildChain, RATE_LIMIT_HINT } from "./fallback";
 
 type Args = {
   modelId: string;
@@ -7,18 +8,14 @@ type Args = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[];
   signal: AbortSignal;
+  /** called when a provider fails and we move to the next one */
+  onFallback?: (from: string, to: string) => void;
 };
 
-/**
- * Returns a ReadableStream of plain text deltas.
- *
- * Keyless models are called straight from the browser, which keeps the app
- * working on static hosting and avoids a server round-trip. Keyed providers go
- * through /api/chat so the key never lands in a cross-origin request log.
- */
-export async function streamChat(args: Args): Promise<ReadableStream<Uint8Array> | null> {
-  const model = findModel(args.modelId);
-
+async function openOne(
+  model: ModelDef,
+  args: Args,
+): Promise<ReadableStream<Uint8Array> | null> {
   if (model.provider === "pollinations") {
     const res = await fetch("https://text.pollinations.ai/openai", {
       method: "POST",
@@ -32,7 +29,8 @@ export async function streamChat(args: Args): Promise<ReadableStream<Uint8Array>
     }).catch(() => null);
 
     if (res?.ok && res.body) return sseToText(res.body);
-    // fall through to the server route if the direct call is blocked
+    if (res && !res.ok) return null; // rate limited — let the chain continue
+    // network/CORS blocked: fall through to the server route
   }
 
   const res = await fetch("/api/chat", {
@@ -40,13 +38,74 @@ export async function streamChat(args: Args): Promise<ReadableStream<Uint8Array>
     headers: { "Content-Type": "application/json" },
     signal: args.signal,
     body: JSON.stringify({
-      modelId: args.modelId,
+      modelId: model.id,
       system: args.system,
       keys: args.keys,
       messages: args.messages,
     }),
   });
-  return res.body;
+  if (!res.ok || !res.body) return null;
+
+  // The route answers 200 with a plain-text ⚠️ line when the provider refused.
+  // Peek at the first chunk so we can fall back instead of showing the error.
+  const reader = res.body.getReader();
+  const first = await reader.read();
+  const head = new TextDecoder().decode(first.value ?? new Uint8Array());
+  if (head.startsWith("⚠️")) {
+    reader.cancel().catch(() => {});
+    return null;
+  }
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (first.value) controller.enqueue(first.value);
+      if (first.done) return controller.close();
+      (async () => {
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } catch {
+          /* aborted */
+        } finally {
+          controller.close();
+        }
+      })();
+    },
+  });
+}
+
+/**
+ * Returns a text stream, automatically retrying across free providers so a
+ * rate-limited tier never becomes a dead end for the user.
+ */
+export async function streamChat(args: Args): Promise<ReadableStream<Uint8Array> | null> {
+  const chain = buildChain(args.modelId, args.keys);
+  const startLabel = findModel(args.modelId).label;
+
+  for (let i = 0; i < chain.length; i++) {
+    if (args.signal.aborted) return null;
+    const model = chain[i];
+    try {
+      const stream = await openOne(model, args);
+      if (stream) {
+        if (i > 0) args.onFallback?.(startLabel, model.label);
+        return stream;
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") throw e;
+    }
+  }
+
+  const enc = new TextEncoder();
+  return new ReadableStream({
+    start(c) {
+      c.enqueue(enc.encode(`⚠️ ${RATE_LIMIT_HINT}`));
+      c.close();
+    },
+  });
 }
 
 function sseToText(body: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
