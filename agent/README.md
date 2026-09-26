@@ -4,7 +4,8 @@ An autonomous coding agent that runs **on your own laptop** and actually does th
 it opens the terminal, writes files, installs packages, runs the build, reads the errors,
 and fixes them itself. You describe the goal; it executes.
 
-This is the piece a browser app cannot do: real shell and filesystem access.
+This is the piece a browser app cannot do: real shell, real files, and a real browser it
+drives itself.
 
 ```
 rv › ek react todo app banao aur dev server chalu karo
@@ -22,6 +23,26 @@ PLAN:
 
 Done — running at http://localhost:5173.
 ```
+
+## It can also drive a browser
+
+Beyond the terminal, the agent can open a real Chromium window and use websites like a
+person — Google, WhatsApp Web, Gmail, any dashboard or form.
+
+```bash
+rv browser-setup      # one-time, downloads Chromium (~150 MB)
+
+rv "google par aaj ka gold rate dekho aur batao"
+rv "whatsapp web kholo aur Papa ko message bhejo ki ghar aa raha hoon"
+rv "is site par form bharo aur submit kar do"
+```
+
+**The window is visible** — you watch every click and can take over whenever you want.
+
+**Logins are remembered.** The profile lives in `~/.rv-agent-browser`, so you scan the
+WhatsApp QR code or sign into Google **once, by hand**, and the agent stays logged in for
+every future run. It will never ask for or type your password — if a site needs a login it
+stops and tells you to do it.
 
 ## Install
 
@@ -76,6 +97,9 @@ rv "is folder ko github par push karo"
 | `write_file` / `read_file` / `edit_file` | Real files on disk |
 | `list_files` / `search` | Explore and grep the project |
 | `web_search` / `fetch_url` | Look up docs and errors online |
+| `browser_open` / `browser_read` | Open a site and see what is on the page |
+| `browser_click` / `browser_type` | Click buttons and fill fields, by visible text |
+| `browser_screenshot` | Save a PNG of what it is looking at |
 
 Independent tools run **in parallel**.
 
@@ -113,13 +137,18 @@ Keys live in `~/.rv-agent.json` (chmod 600) or the standard environment variable
 - **Model quality decides quality.** Groq's Llama 3.3 70B is good but not
   frontier-level; it will occasionally take a clumsy route or need a nudge.
 - **Long tasks hit the step cap** (30 tool calls). Say "continue" to resume.
-- **It cannot drive your GUI** — no clicking around WhatsApp or Chrome. It works in the
-  terminal and the filesystem, which is where coding actually happens. Browser
-  automation is possible as an add-on via Playwright.
+- **Browser control is web-only.** It drives Chromium, so anything with a website works
+  (WhatsApp Web, Gmail, GitHub). It cannot click native desktop apps — the WhatsApp
+  *app* on your Mac, Finder, or System Settings are out of reach.
+- **Sites change and break automation.** WhatsApp Web in particular updates often; if a
+  click fails, `browser_read` usually lets the agent find the new button, but not always.
 - **Review before you trust.** It is capable, not infallible. Use git.
 
 ## Tests
 
 ```bash
-node test/safety.test.mjs
+npm test     # safety rails + agent loop
 ```
+
+19 safety checks cover blocked destructive commands, path-escape attempts, missing files,
+bad edits and runaway processes.

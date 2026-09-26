@@ -63,12 +63,38 @@ async function setup() {
 
 /* ------------------------------------------------------------------ */
 
+async function browserSetup() {
+  console.log(BANNER);
+  console.log(c.bold("Browser control setup\n"));
+  console.log(
+    "This lets the agent drive a real Chromium window — Google, WhatsApp Web,\n" +
+      "dashboards, forms. Your logins are saved, so you only sign in once.\n",
+  );
+  console.log(c.dim("Downloading Chromium (~150 MB, one time)…\n"));
+
+  const { runBash } = await import("./tools.js");
+  const out = await runBash(process.cwd(), "npx playwright install chromium", 900);
+  console.log(out.slice(-1200));
+
+  if (/\[exit 0\]/.test(out)) {
+    console.log(c.green("\n✓ browser ready"));
+    console.log(
+      "\nTip: the first time you use a site that needs a login, the window opens and\n" +
+        "waits for you. Sign in by hand once — the agent remembers it after that.\n",
+    );
+  } else {
+    console.log(c.yellow("\n! download did not finish. Check your internet and retry."));
+  }
+  closeRl();
+}
+
 function help() {
   console.log(BANNER);
   console.log(`${c.bold("Usage")}
   rv                      start an interactive session in this folder
   rv "<task>"             run one task and exit
   rv setup                configure free API keys
+  rv browser-setup        enable browser control (Google, WhatsApp, any site)
   rv --yolo "<task>"      run without asking for approval
   rv --help               this message
 
@@ -76,6 +102,8 @@ ${c.bold("Examples")}
   ${c.dim('rv "ek react todo app banao aur dev server chalu karo"')}
   ${c.dim('rv "npm test chalao aur jo fail ho rahe hain wo theek karo"')}
   ${c.dim('rv "is folder ka code padho aur README likho"')}
+  ${c.dim('rv "google par aaj ka gold rate dekho aur batao"')}
+  ${c.dim('rv "whatsapp web kholo aur Papa ko message bhejo ki ghar aa raha hoon"')}
   ${c.dim('rv "ye error theek karo: TypeError cannot read property map of undefined"')}
 
 ${c.bold("In a session")}
@@ -145,6 +173,7 @@ async function main() {
   const argv = process.argv.slice(2);
 
   if (argv[0] === "setup") return setup();
+  if (argv[0] === "browser-setup") return browserSetup();
   if (argv.includes("--help") || argv.includes("-h")) return help();
 
   const cfg = await loadConfig();

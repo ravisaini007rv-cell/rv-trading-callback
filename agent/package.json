@@ -3,8 +3,19 @@
   "version": "1.0.0",
   "description": "An autonomous coding agent that runs on your own machine.",
   "type": "module",
-  "bin": { "rv": "./src/cli.js" },
-  "scripts": { "start": "node src/cli.js" },
+  "bin": {
+    "rv": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node test/safety.test.mjs && node test/browser-flow.test.mjs",
+    "browser": "npx playwright install chromium"
+  },
   "dependencies": {},
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.49.0"
+  }
 }

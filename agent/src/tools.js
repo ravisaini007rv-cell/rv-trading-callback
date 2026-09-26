@@ -2,6 +2,7 @@ import { execFile, spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { BROWSER_TOOLS, BROWSER_TOOL_NAMES, executeBrowserTool } from "./browser.js";
 
 /* ------------------------------------------------------------------ *
  * Safety rails. The agent works inside one project directory, and a
@@ -81,8 +82,9 @@ export const TOOL_SPECS = [
   {
     name: "fetch_url",
     args: { url: "https://…" },
-    desc: "Read the text of a web page or JSON API.",
+    desc: "Read the text of a web page or JSON API. Fast, but cannot log in or click.",
   },
+  ...BROWSER_TOOLS,
 ];
 
 export function runBash(root, command, timeoutSec = 120) {
@@ -223,6 +225,14 @@ async function fetchUrl(url) {
 /* ------------------------------------------------------------------ */
 
 export async function executeTool(root, tool, args) {
+  if (BROWSER_TOOL_NAMES.includes(tool)) {
+    try {
+      return await executeBrowserTool(tool, args);
+    } catch (e) {
+      return `Error: ${e.message}`;
+    }
+  }
+
   switch (tool) {
     case "bash":
       return runBash(root, args.command ?? "", Number(args.timeout) || 120);
