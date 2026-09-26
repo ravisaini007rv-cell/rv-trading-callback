@@ -487,6 +487,116 @@ async function openPhone() {
   }
 }
 
+/* ── strategy lab (backtest) ─────────────────────────────────── */
+async function runBacktest() {
+  const symbol = $("#bt-symbol").value.trim().toUpperCase();
+  if (!symbol) { $("#bt-status").textContent = "⚠️ Symbol likho."; return; }
+  const btn = $("#btn-backtest");
+  btn.disabled = true;
+  $("#bt-status").textContent = "⏳ Backtest chal raha hai…";
+  try {
+    const r = await fetch("/api/backtest", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol, strategy: $("#bt-strategy").value, years: $("#bt-years").value }),
+    });
+    const d = await r.json();
+    if (!r.ok) { $("#bt-status").innerHTML = `❌ ${esc(d.detail || r.status)}`; return; }
+    renderBacktest(d);
+    $("#bt-status").innerHTML = `${esc(d.strategy_name)} · ${d.from} → ${d.to} (${d.n_days} din) · data: ${d.data_source.toUpperCase()}`;
+  } catch (e) {
+    $("#bt-status").innerHTML = `❌ ${esc(e.message)}`;
+  } finally { btn.disabled = false; }
+}
+
+function renderBacktest(d) {
+  const s = d.result, b = d.buy_hold;
+  const better = s.total_return_pct >= b.total_return_pct;
+  $("#bt-output").innerHTML = `
+    <div class="panel verdict ${d.strategy === "buy_hold" ? "" : better ? "good" : "bad"}">
+      <b>${esc(d.symbol)} · ${esc(d.strategy_name)}</b> — ${d.verdict}
+    </div>
+    <div class="panel">
+      <div class="metrics">
+        ${metric("Total Return", `${s.total_return_pct}%`, s.total_return_pct >= 0 ? "good" : "bad",
+                 `Buy&Hold: ${b.total_return_pct}%`)}
+        ${metric("Saalana (CAGR)", `${s.cagr_pct}%`, s.cagr_pct >= 0 ? "good" : "bad", `B&H: ${b.cagr_pct}%`)}
+        ${metric("Max Drawdown", `−${s.max_drawdown_pct}%`, "warn", "Kitna gira tha")}
+        ${metric("Trades", s.n_trades, "", `Win rate: ${s.win_rate_pct ?? "—"}%`)}
+        ${metric("Market me time", `${s.exposure_pct}%`, "", "Baaki time cash")}
+        ${metric("₹1 lakh →", `₹${INR.format(s.final_equity)}`, better ? "good" : "bad",
+                 `B&H: ₹${INR.format(b.final_equity)}`)}
+      </div>
+      <h3 style="margin-top:18px">Growth curve — strategy vs buy &amp; hold</h3>
+      <canvas id="bt-chart" style="width:100%;height:230px"></canvas>
+      <div class="legend"><span class="lg lg-s">Strategy</span><span class="lg lg-b">Buy &amp; Hold</span></div>
+      ${s.trades.length ? `<h3 style="margin-top:18px">Last trades</h3>
+      <div class="tbl-wrap"><table class="ttable">
+        <tr><th>Buy date</th><th>Buy ₹</th><th>Sell date</th><th>Sell ₹</th><th>P&amp;L</th></tr>
+        ${s.trades.map(t => `<tr><td>${t.date}</td><td>${INR.format(t.price)}</td>
+          <td>${t.exit_date}${t.open ? " (abhi bhi hold)" : ""}</td><td>${INR.format(t.exit_price)}</td>
+          <td style="color:${t.ret_pct >= 0 ? "var(--accent)" : "var(--red)"};font-weight:700">${t.ret_pct >= 0 ? "+" : ""}${t.ret_pct}%</td></tr>`).join("")}
+      </table></div>` : `<p class="muted small" style="margin-top:12px">Koi trade nahi hui is period me.</p>`}
+      <p class="muted small" style="margin-top:14px">⚠️ ${esc(d.disclaimer)}</p>
+    </div>`;
+  drawEquity($("#bt-chart"), s.curve, b.curve);
+}
+
+function metric(label, value, cls, sub) {
+  return `<div class="metric ${cls}">
+    <div class="m-label">${label}</div>
+    <div class="m-val">${value}</div>
+    <div class="m-sub">${sub || ""}</div>
+  </div>`;
+}
+
+function drawEquity(canvas, a, b) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 600, h = 230;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const all = a.concat(b);
+  const min = Math.min(...all), max = Math.max(...all), span = max - min || 1;
+  const X = (i, n) => (i / (n - 1)) * (w - 50) + 40;
+  const Y = v => h - 25 - ((v - min) / span) * (h - 45);
+  ctx.strokeStyle = "#1a3149"; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = 20 + (i * (h - 45)) / 4;
+    ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w - 10, y); ctx.stroke();
+  }
+  const draw = (arr, color, width) => {
+    ctx.beginPath();
+    arr.forEach((v, i) => { const x = X(i, arr.length), y = Y(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  };
+  draw(b, "#93d8ff", 1.6);
+  draw(a, "#45dbaa", 2.2);
+  ctx.fillStyle = "#9db0c6"; ctx.font = "10.5px sans-serif";
+  [min, min + span / 2, max].forEach(v =>
+    ctx.fillText(`₹${INR.format(Math.round(v / 1000))}k`, 2, Y(v) + 3));
+}
+
+/* ── SIP calculator ─────────────────────────────────────────── */
+function calcSIP() {
+  const P = Math.max(0, +$("#sip-amt").value || 0);
+  const y = Math.max(1, +$("#sip-years").value || 1);
+  const r = Math.max(0, +$("#sip-ret").value || 0);
+  const i = r / 1200, n = y * 12;
+  const fv = i === 0 ? P * n : P * ((Math.pow(1 + i, n) - 1) / i) * (1 + i);
+  const invested = P * n;
+  const gain = fv - invested;
+  $("#sip-output").innerHTML = `
+    <div class="metrics">
+      ${metric("Total invest kiya", `₹${INR.format(invested)}`, "", `${n} months × ₹${INR.format(P)}`)}
+      ${metric("Estimated gain", `₹${INR.format(gain)}`, "good", "compounding ki taakat")}
+      ${metric("Final corpus", `₹${INR.format(fv)}`, "good", `${y} saal baad`)}
+    </div>
+    <p class="muted small" style="margin-top:12px">💡 Jo log ameer hote hain, zyada tar inhi teen cheezo se:
+    <b>time + compounding + consistency</b> — koi secret tip nahi. Ye estimate hai, market fixed return nahi deti.</p>`;
+}
+["sip-amt", "sip-years", "sip-ret"].forEach(id =>
+  document.getElementById(id).addEventListener("input", calcSIP));
+
 /* ── wire up ───────────────────────────────────────────────── */
 $("#btn-add").onclick = () => addSymbol($("#add-symbol").value);
 $("#btn-reset").onclick = () => { store.watchlist = [...DEFAULT_WATCHLIST]; renderChips(); loadQuotes(); };

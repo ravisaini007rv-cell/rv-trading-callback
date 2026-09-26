@@ -15,6 +15,8 @@ koi SuperGrok nahi. Aapke apne computer pe chalta hai, aapki API key aapke paas 
 | 🔍 **Stock Search** | Groww-jaisa search — naam likho ("reliance", "apple"), suggestions me se click karo. Apne computer pe poora universe (saare NSE/BSE/US stocks, indices, crypto) live search hota hai |
 | 📐 **Technical Engine** | RSI(14), SMA 20/50/200, MACD, 52-week range, volume analysis, **auto BUY/HOLD/SELL signals** (reasons ke saath) |
 | 🤖 **5-Agent AI Team** | SCOUT 🛰️ (scanner) → RECON 🔎 (news extraction) → VERIFY ✅ (fact-check) → SIGNAL 📡 (narratives) → CHIEF 🧠 (final report) |
+| 🧪 **Strategy Lab (backtester)** | 5 classic strategies ko saalon ke real data pe test karo — total return, CAGR, max drawdown, trades, win rate, Buy & Hold comparison. **"Paisa banane wali strategy dhundhne" ka honest tareeka** |
+| 💰 **SIP Calculator** | Compounding maths — slow lekin real wealth ka formula |
 | 📰 **News** | Har symbol ki latest news dashboard me |
 | 📄 **Report Generator** | Poora markdown report — web se download karo ya CLI se banao |
 | 💰 **100% FREE** | Groq free-tier LLM + Yahoo Finance data |

@@ -94,6 +94,26 @@ def network():
     return {"lan_ip": ip, "port": 8000, "url": f"http://{ip}:8000"}
 
 
+@app.post("/api/backtest")
+async def backtest_ep(body: dict):
+    symbol = (body.get("symbol") or "").strip()
+    strategy = body.get("strategy") or "sma_20_50"
+    years = str(body.get("years") or "5")
+    if not symbol:
+        return JSONResponse(status_code=400, content={"detail": "symbol required"})
+
+    from core import backtest as bt
+    period = {"2": "2y", "5": "5y", "10": "10y", "max": "10y"}.get(years, "5y")
+    h = data.get_history(symbol, period)
+    try:
+        res = bt.run_backtest(h["days"], strategy)
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"detail": str(e)})
+    res["symbol"] = symbol
+    res["data_source"] = h["source"]
+    return res
+
+
 @app.post("/api/quotes")
 async def quotes(body: dict):
     symbols = body.get("symbols") or []

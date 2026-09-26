@@ -28,6 +28,7 @@
 <nav>
   <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
   <button class="tab" data-tab="ai">🤖 AI Team</button>
+  <button class="tab" data-tab="lab">🧪 Strategy Lab</button>
   <button class="tab" data-tab="report">📄 Report</button>
   <button class="tab" data-tab="help">❓ Help</button>
 </nav>
@@ -80,6 +81,55 @@
   <div id="ai-output"></div>
 </section>
 
+<!-- ═══════════ STRATEGY LAB ═══════════ -->
+<section id="tab-lab" class="tabpane">
+  <div class="panel">
+    <h2>🧪 Strategy Lab — kya strategy ACTUALLY kaam karti hai?</h2>
+    <p class="muted">Kisi bhi strategy pe bharosa karne se pehle usko <b>saalon ke real data pe test</b> karo.
+    Ye tool strategy ko chart ke har din chala ke batata hai — paisa bana ya naya, Buy &amp; Hold se better thi ya nahi.
+    <b>Pros exactly aise hi karte hain.</b></p>
+
+    <div class="lab-form">
+      <label>Stock / Index
+        <input id="bt-symbol" value="RELIANCE.NS" spellcheck="false" />
+      </label>
+      <label>Strategy
+        <select id="bt-strategy">
+          <option value="sma_20_50">SMA Crossover (20/50)</option>
+          <option value="golden_50_200">Golden Cross (50/200)</option>
+          <option value="rsi_reversion">RSI Mean Reversion (30/70)</option>
+          <option value="macd">MACD Momentum</option>
+          <option value="momentum_100">100-Day Momentum</option>
+          <option value="buy_hold">Buy &amp; Hold (baseline)</option>
+        </select>
+      </label>
+      <label>Period
+        <select id="bt-years">
+          <option value="2">2 saal</option>
+          <option value="5" selected>5 saal</option>
+          <option value="10">Max (10y)</option>
+        </select>
+      </label>
+      <button id="btn-backtest" class="primary big">🧪 Run Backtest</button>
+    </div>
+    <p class="muted small" id="bt-status">Tip: pehle Buy &amp; Hold chalao (baseline), phir strategies se compare karo.</p>
+  </div>
+  <div id="bt-output"></div>
+
+  <div class="panel">
+    <h2>💰 SIP Calculator — "pakka" tareeka (maths wala)</h2>
+    <p class="muted">Trading me 90% log paisa lose karte hain. Lekin history ke hisaab se
+    NIFTY 50 lambe samay me ~12% saalana return diya hai. Har mahine fixed SIP +
+    compounding = slow lekin <b>real</b> wealth. Ye maths hai, koi tip nahi.</p>
+    <div class="lab-form">
+      <label>Monthly SIP (₹)<input id="sip-amt" type="number" value="5000" min="500" step="500" /></label>
+      <label>Saal<input id="sip-years" type="number" value="15" min="1" max="40" /></label>
+      <label>Expected return % / saal<input id="sip-ret" type="number" value="12" min="1" max="30" /></label>
+    </div>
+    <div id="sip-output"></div>
+  </div>
+</section>
+
 <!-- ═══════════ REPORT ═══════════ -->
 <section id="tab-report" class="tabpane">
   <div class="panel">
@@ -126,6 +176,13 @@
       <li>Header me <b>📱 Phone</b> button dabao — QR code / address milega</li>
       <li>Phone aur computer <b>same WiFi</b> pe hon</li>
       <li>Phone browser me wo address kholo — bas! (Mac pe app chalti rahe)</li>
+    </ol>
+
+    <h3>🧪 Strategy Lab — kaise use karein</h3>
+    <ol>
+      <li>Symbol + strategy + period chuno → <b>Run Backtest</b></li>
+      <li>Dekho: total return, CAGR, max drawdown, trades, win rate — <b>Buy &amp; Hold se comparison ke saath</b></li>
+      <li>Rule: jo strategy sirf ek stock/period pe jeete, uspe bharosa mat karo — <b>kai stocks, kai periods pe test karo</b>. Wahi strategy samajhdari hai jo consistently Buy &amp; Hold ko haraaye (warna index fund hi better hai)</li>
     </ol>
 
     <h3>📊 Data modes</h3>
