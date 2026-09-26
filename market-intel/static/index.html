@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RV Market Intelligence — India + US</title>
+<link rel="stylesheet" href="/static/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42'><rect width='42' height='42' rx='10' fill='%230c1929' stroke='%2345dbaa'/><text x='21' y='27' font-size='15' font-weight='800' fill='%2345dbaa' text-anchor='middle' font-family='sans-serif'>RV</text></svg>" />
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">RV</div>
+    <div>
+      <h1>Market Intelligence</h1>
+      <p class="sub">AI Agent Team · India 🇮🇳 + US 🇺🇸</p>
+    </div>
+  </div>
+  <div class="badges">
+    <span id="badge-data" class="badge" title="Data source">DATA …</span>
+    <span id="badge-ai" class="badge" title="AI key status">AI OFF</span>
+    <button id="btn-phone" class="ghost" title="Phone se connect karo">📱 Phone</button>
+    <button id="btn-settings" class="ghost" title="Settings">⚙ Settings</button>
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+  <button class="tab" data-tab="ai">🤖 AI Team</button>
+  <button class="tab" data-tab="report">📄 Report</button>
+  <button class="tab" data-tab="help">❓ Help</button>
+</nav>
+
+<main>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<section id="tab-dashboard" class="tabpane active">
+
+  <div class="watchbar">
+    <div id="chips" class="chips"></div>
+    <div class="addrow">
+      <input id="add-symbol" placeholder="Symbol add karo (e.g. WIPRO.NS / AMD)" spellcheck="false" />
+      <button id="btn-add" class="primary">+ Add</button>
+      <button id="btn-reset" class="ghost" title="Default watchlist wapas lao">↺ Reset</button>
+      <button id="btn-refresh" class="ghost" title="Refresh">⟳</button>
+    </div>
+  </div>
+
+  <div id="grid-in" class="group">
+    <h2>India — NSE</h2>
+    <div class="cards" id="cards-in"></div>
+  </div>
+  <div id="grid-us" class="group">
+    <h2>United States</h2>
+    <div class="cards" id="cards-us"></div>
+  </div>
+</section>
+
+<!-- ═══════════ AI TEAM ═══════════ -->
+<section id="tab-ai" class="tabpane">
+  <div class="panel">
+    <h2>🤖 Market Intelligence Team</h2>
+    <p class="muted">5 specialized agents aapke watchlist ko scan karte hain, news nikaalte hain,
+    har claim ko data se verify karte hain, phir final report likhte hain.</p>
+    <div class="agents-row">
+      <div class="agent-chip">🛰️ <b>SCOUT</b><span>scanner</span></div>
+      <div class="agent-chip">🔎 <b>RECON</b><span>news extraction</span></div>
+      <div class="agent-chip">✅ <b>VERIFY</b><span>fact-check</span></div>
+      <div class="agent-chip">📡 <b>SIGNAL</b><span>narratives</span></div>
+      <div class="agent-chip">🧠 <b>CHIEF</b><span>final report</span></div>
+    </div>
+    <textarea id="ai-focus" rows="2" placeholder="Focus (optional): e.g. 'IT stocks for swing trade' ya 'NIFTY ka weekly view'"></textarea>
+    <div class="btnrow">
+      <button id="btn-run-ai" class="primary big">▶ Run Intelligence Team</button>
+      <button id="btn-run-demo" class="ghost big">▶ Demo Run (bina key)</button>
+    </div>
+    <div id="ai-status" class="muted small"></div>
+  </div>
+  <div id="ai-output"></div>
+</section>
+
+<!-- ═══════════ REPORT ═══════════ -->
+<section id="tab-report" class="tabpane">
+  <div class="panel">
+    <h2>📄 Full Market Report</h2>
+    <p class="muted">Current watchlist ka complete report — snapshot, technical detail
+    {+ AI section agar key on ho}.</p>
+    <label class="checkrow"><input type="checkbox" id="rep-ai" /> Include AI analysis (key chahiye)</label>
+    <button id="btn-report" class="primary big">📄 Generate Report</button>
+    <div id="rep-status" class="muted small"></div>
+  </div>
+  <div id="rep-output"></div>
+</section>
+
+<!-- ═══════════ HELP ═══════════ -->
+<section id="tab-help" class="tabpane">
+  <div class="panel">
+    <h2>❓ Help — 2 minute me setup</h2>
+
+    <h3>1️⃣ Free AI key lo (optional but recommended)</h3>
+    <ol>
+      <li><a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a> kholo → Google/GitHub se sign in</li>
+      <li><b>API Keys</b> → <b>Create API Key</b> → copy karo</li>
+      <li>Yahan <b>⚙ Settings</b> me paste karke Save karo — bas, AI Team unlock ✅</li>
+    </ol>
+    <p class="muted small">Groq free tier: ~30 requests/min — ek team-run me 5 requests lagti hain, to kaafi chalega. Key sirf aapke browser me rehti hai aur seedha Groq ko jaati hai.</p>
+
+    <h3>2️⃣ Apne computer pe chalao (real live data)</h3>
+    <ol>
+      <li>Repo download karo → <code>market-intel</code> folder kholo</li>
+      <li><b>Windows:</b> <code>run.bat</code> double-click karo &nbsp;|&nbsp; <b>Mac/Linux:</b> terminal me <code>./run.sh</code></li>
+      <li>Browser me <code>http://localhost:8000</code> khul jayega — LIVE data ke saath</li>
+    </ol>
+    <p class="muted small">CLI report bhi hai: <code>python report.py RELIANCE.NS AAPL --ai</code></p>
+
+    <h3>🔍 Stock search (Groww jaisa)</h3>
+    <ul>
+      <li>Dashboard ke search box me <b>naam likho</b> — "reliance", "apple", "infosys"… suggestions aayengi, click karke add karo</li>
+      <li>Apne computer pe ye <b>poora stock universe</b> search karta hai (Yahoo se live) — NSE/BSE ke saare stocks + US</li>
+      <li>Indices bhi milte hain: "nifty", "sensex" · Crypto bhi: "bitcoin"</li>
+    </ul>
+
+    <h3>📱 Android/phone se kaise chalayein</h3>
+    <ol>
+      <li>Header me <b>📱 Phone</b> button dabao — QR code / address milega</li>
+      <li>Phone aur computer <b>same WiFi</b> pe hon</li>
+      <li>Phone browser me wo address kholo — bas! (Mac pe app chalti rahe)</li>
+    </ol>
+
+    <h3>📊 Data modes</h3>
+    <ul>
+      <li><b>LIVE</b> — Yahoo Finance (India NSE + US). Aapke computer pe default yehi chalega.</li>
+      <li><b>DEMO</b> — agar network block ho (jaise kuch cloud sandboxes), realistic sample data dikhta hai. Badge se clearly pata chalta hai.</li>
+    </ul>
+
+    <h3>🤖 AI providers</h3>
+    <ul>
+      <li><b>Groq</b> — FREE, recommended (console.groq.com)</li>
+      <li><b>xAI Grok</b> — paid (console.x.ai), same UI me kaam karta hai</li>
+      <li><b>Custom</b> — koi bhi OpenAI-compatible API (OpenRouter, vLLM, …)</li>
+    </ul>
+
+    <h3>⚠️ Disclaimer</h3>
+    <p class="muted">Yeh tool sirf research aur education ke liye hai. Signals technical
+    formulas se computed hain aur AI output data-grounded ho tab bhi — <b>investment advice nahi hai</b>.
+    Paisa lagane se pehle apna research zaroor karo. 🙏</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ═══════════ DETAIL MODAL ═══════════ -->
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <button class="close" id="modal-close">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════ PHONE CONNECT MODAL ═══════════ -->
+<div id="phone" class="modal hidden">
+  <div class="modal-box">
+    <button class="close" id="phone-close">✕</button>
+    <h2>📱 Phone / Android se connect karo</h2>
+
+    <h3>Option A — Same WiFi (sabse easy, 1 minute)</h3>
+    <ol>
+      <li>Ye app <b>Mac pe chalti rahe</b> (Terminal window band mat karna)</li>
+      <li>Phone aur Mac <b>same WiFi</b> pe hone chahiye</li>
+      <li>Phone ke browser (Chrome) me ye address kholo:</li>
+    </ol>
+    <div class="phone-url">
+      <code id="lan-url">pata kar rahe hain…</code>
+      <button id="lan-copy" class="ghost">Copy</button>
+    </div>
+    <div class="qr-wrap">
+      <img id="lan-qr" alt="QR code" width="190" height="190"
+           onerror="this.parentNode.style.display='none'" />
+      <div class="muted small">Phone camera se QR scan karo 👆<br>(ya upar ka address type karo)</div>
+    </div>
+    <p class="muted small">💡 Phone pe AI key alag se ⚙ Settings me daalni padegi (har device apni key
+    rakhta hai — same Groq key hi dubara paste kar dena). Watchlist bhi phone me alag banegi.</p>
+
+    <h3>Option B — Kahin se bhi access (optional)</h3>
+    <p class="muted small">Free cloud pe deploy karo (Render.com) — phir internet se kahin se bhi
+    khulega, Mac on rakhna nahi padega. Steps README me hain.</p>
+  </div>
+</div>
+
+<!-- ═══════════ SETTINGS MODAL ═══════════ -->
+<div id="settings" class="modal hidden">
+  <div class="modal-box">
+    <button class="close" id="settings-close">✕</button>
+    <h2>⚙ Settings</h2>
+    <label>AI Provider
+      <select id="set-provider">
+        <option value="groq">Groq (FREE — recommended)</option>
+        <option value="xai">xAI Grok (paid)</option>
+        <option value="custom">Custom (OpenAI-compatible)</option>
+      </select>
+    </label>
+    <label>API Key <span class="muted small" id="key-help"></span>
+      <input id="set-key" type="password" placeholder="paste key here" spellcheck="false" />
+    </label>
+    <label>Model <span class="muted small">(blank = provider default)</span>
+      <input id="set-model" placeholder="e.g. openai/gpt-oss-120b" spellcheck="false" />
+    </label>
+    <label>Base URL <span class="muted small">(custom provider ke liye)</span>
+      <input id="set-base" placeholder="https://api.groq.com/openai/v1" spellcheck="false" />
+    </label>
+    <div class="btnrow">
+      <button id="set-save" class="primary">Save</button>
+      <button id="set-clear" class="ghost">Key hatao</button>
+    </div>
+    <p class="muted small" id="set-note">Key sirf aapke browser (localStorage) me save hoti hai aur
+    request ke waqt seedha chosen provider ko jaati hai — kahin aur nahi.</p>
+  </div>
+</div>
+
+<footer>RV Market Intelligence · Made with ❤️ · Not investment advice</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
