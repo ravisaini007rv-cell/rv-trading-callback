@@ -44,9 +44,15 @@ async function setup() {
   console.log(`\n${c.green("3. Ollama")} ${c.dim("— local, unlimited, offline (optional)")}`);
   cfg.useOllama = await confirm("   is Ollama installed and running?");
 
-  cfg.autoApprove = !(await confirm(
-    `\n${c.yellow("Safety")}: ask before every command and file write?`,
-  ));
+  console.log(`\n${c.yellow("How much should it ask you?")}`);
+  console.log(
+    c.dim(
+      "  If you say no here, the agent runs commands and writes files on its own —\n" +
+        "  you just describe the goal and watch. Destructive commands stay blocked\n" +
+        "  either way. Recommended: work inside a git repo.",
+    ),
+  );
+  cfg.autoApprove = !(await confirm("  ask before every command and file write?"));
 
   await saveConfig(cfg);
 
@@ -179,7 +185,7 @@ async function main() {
   const cfg = await loadConfig();
   const root = process.cwd();
 
-  if (argv.includes("--yolo")) cfg.autoApprove = true;
+  if (argv.includes("--yolo") || argv.includes("--auto")) cfg.autoApprove = true;
   const task = argv.filter((a) => !a.startsWith("--")).join(" ").trim();
 
   if (!availableProviders(cfg).length) {
@@ -197,6 +203,18 @@ async function main() {
 
   await interactive(cfg, root);
 }
+
+import { killAll } from "./process.js";
+
+for (const sig of ["SIGINT", "SIGTERM"]) {
+  process.on(sig, () => {
+    killAll();
+    closeRl();
+    console.log(c.dim("\n  stopped background processes. bye 👋\n"));
+    process.exit(0);
+  });
+}
+process.on("exit", killAll);
 
 main().catch((e) => {
   console.error(c.red("\nfatal: " + (e?.stack ?? e)));

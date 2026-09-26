@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { BROWSER_TOOLS, BROWSER_TOOL_NAMES, executeBrowserTool } from "./browser.js";
+import { PROCESS_TOOLS, PROCESS_TOOL_NAMES, executeProcessTool } from "./process.js";
 
 /* ------------------------------------------------------------------ *
  * Safety rails. The agent works inside one project directory, and a
@@ -22,6 +23,11 @@ const BLOCKED = [
   /\bcurl\b[^|]*\|\s*(ba)?sh/i, // curl | sh
   /\bwget\b[^|]*\|\s*(ba)?sh/i,
 ];
+
+/** Commands that would silently block forever waiting for typed input. */
+export function needsInteraction(cmd) {
+  return /(^|\s|;|&&|\|)sudo\s/.test(cmd) && !/-n\b/.test(cmd);
+}
 
 export function isDangerous(cmd) {
   for (const re of BLOCKED) if (re.test(cmd)) return true;
@@ -84,7 +90,13 @@ export const TOOL_SPECS = [
     args: { url: "https://…" },
     desc: "Read the text of a web page or JSON API. Fast, but cannot log in or click.",
   },
+  ...PROCESS_TOOLS,
   ...BROWSER_TOOLS,
+  {
+    name: "open",
+    args: { target: "a file, folder or http URL" },
+    desc: "Open something in the user's default app — a URL in their browser, a folder in Finder, a file in their editor. Use this to SHOW the user the finished result.",
+  },
 ];
 
 export function runBash(root, command, timeoutSec = 120) {
@@ -225,6 +237,14 @@ async function fetchUrl(url) {
 /* ------------------------------------------------------------------ */
 
 export async function executeTool(root, tool, args) {
+  if (PROCESS_TOOL_NAMES.includes(tool)) {
+    try {
+      return await executeProcessTool(root, tool, args);
+    } catch (e) {
+      return `Error: ${e.message}`;
+    }
+  }
+
   if (BROWSER_TOOL_NAMES.includes(tool)) {
     try {
       return await executeBrowserTool(tool, args);
@@ -234,8 +254,31 @@ export async function executeTool(root, tool, args) {
   }
 
   switch (tool) {
-    case "bash":
-      return runBash(root, args.command ?? "", Number(args.timeout) || 120);
+    case "bash": {
+      const cmd = args.command ?? "";
+      if (needsInteraction(cmd)) {
+        return (
+          "Error: this command uses sudo and would hang waiting for a password that " +
+          "cannot be typed here.\n" +
+          "Either find a way that does not need sudo (for example Homebrew installs " +
+          "user packages without it), or tell the user the exact command to paste once " +
+          "in their own terminal, then continue."
+        );
+      }
+      return runBash(root, cmd, Number(args.timeout) || 120);
+    }
+
+    case "open": {
+      const t = args.target ?? "";
+      const opener =
+        process.platform === "darwin"
+          ? "open"
+          : process.platform === "win32"
+            ? "start"
+            : "xdg-open";
+      const out = await runBash(root, `${opener} ${JSON.stringify(t)}`, 15);
+      return /\[exit 0\]/.test(out) ? `Opened ${t} for the user.` : out;
+    }
 
     case "write_file": {
       if (!args.path) return "Error: path is required";

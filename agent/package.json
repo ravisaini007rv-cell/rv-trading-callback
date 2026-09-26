@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node src/cli.js",
-    "test": "node test/safety.test.mjs && node test/browser-flow.test.mjs",
+    "test": "node test/safety.test.mjs && node test/process.test.mjs && node test/browser-flow.test.mjs",
     "browser": "npx playwright install chromium"
   },
   "dependencies": {},

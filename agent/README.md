@@ -24,6 +24,46 @@ PLAN:
 Done — running at http://localhost:5173.
 ```
 
+## You never touch the terminal
+
+That is the whole point. The agent installs what is missing, runs the commands, starts the
+servers, and opens the result for you.
+
+```
+rv › ek python flask api banao aur chalu karo
+
+PLAN:
+1. Check whether Python is installed
+2. Write the Flask app
+3. Install flask and start the server
+4. Verify it responds
+
+   ✓ $ which python3 || brew install python3
+   ✓ write app.py
+   ✓ $ python3 -m pip install flask
+   ✓ start dev-server  (background)
+   ✓ check dev-server  → "Running on http://127.0.0.1:5000"
+   ✓ $ curl -s localhost:5000/health  → {"ok":true}
+   ✓ open http://localhost:5000
+
+Running at http://localhost:5000 — I opened it in your browser.
+```
+
+Notice what you did: nothing. No copy-paste, no `npm install`, no switching windows.
+
+### Servers do not block it
+
+`npm run dev` never exits, so running it with plain `bash` would hang. The agent uses
+`start_process` for those: the server runs in the background, the agent reads its logs
+with `check_process`, curls it to prove it works, and keeps going. Everything it started
+is shut down when you exit.
+
+### Things it cannot do alone
+
+**`sudo`** — it cannot type your password, so instead of hanging it finds a route that
+does not need root (Homebrew installs to your own directory). If root is genuinely
+required, it hands you one exact line to paste and carries on with everything else.
+
 ## It can also drive a browser
 
 Beyond the terminal, the agent can open a real Chromium window and use websites like a
@@ -100,6 +140,9 @@ rv "is folder ko github par push karo"
 | `browser_open` / `browser_read` | Open a site and see what is on the page |
 | `browser_click` / `browser_type` | Click buttons and fill fields, by visible text |
 | `browser_screenshot` | Save a PNG of what it is looking at |
+| `start_process` / `check_process` | Run dev servers in the background and read their logs |
+| `stop_process` / `list_processes` | Manage what is running |
+| `open` | Show you the result — URL in your browser, folder in Finder |
 
 Independent tools run **in parallel**.
 
@@ -150,5 +193,6 @@ Keys live in `~/.rv-agent.json` (chmod 600) or the standard environment variable
 npm test     # safety rails + agent loop
 ```
 
-19 safety checks cover blocked destructive commands, path-escape attempts, missing files,
-bad edits and runaway processes.
+32 checks: blocked destructive commands, path-escape attempts, missing files, bad edits,
+runaway processes, background server lifecycle (start → verify → stop → confirm dead),
+sudo detection, and the agent loop recovering from a failed tool.
