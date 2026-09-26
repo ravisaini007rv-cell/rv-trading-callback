@@ -1,0 +1,10 @@
+{
+  "name": "rv-agent",
+  "version": "1.0.0",
+  "description": "An autonomous coding agent that runs on your own machine.",
+  "type": "module",
+  "bin": { "rv": "./src/cli.js" },
+  "scripts": { "start": "node src/cli.js" },
+  "dependencies": {},
+  "engines": { "node": ">=18" }
+}

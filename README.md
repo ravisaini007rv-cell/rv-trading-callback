@@ -5,6 +5,16 @@ in-browser video editing. Built with Next.js 16 + Tailwind 4.
 
 **It works with zero configuration.** The default models need no API key at all.
 
+## Two halves
+
+| | Runs in | Can it touch your computer? |
+|---|---|---|
+| **Web app** (this folder) | Browser | No — sandboxed. Chat, build, images, video, data. |
+| **[RV Agent](agent/)** (`agent/`) | Your terminal | **Yes** — real shell, real files. It installs, builds, runs and fixes code by itself. |
+
+Use the web app for thinking and creating; use the agent when you want the work actually
+done on your machine. → **[agent/README.md](agent/README.md)**
+
 ## Free capacity — the honest version
 
 Nothing here costs money, but "free" is not "infinite". The app is built around that:
